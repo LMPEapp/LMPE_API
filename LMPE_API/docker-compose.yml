@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb_${NAME_ENV}
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT}:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MARIADB_DATABASE: "mydatabase"
+      MARIADB_USER: "user"
+      MARIADB_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - ./db_data:/var/lib/mysql
+      - ./init-scripts/:/docker-entrypoint-initdb.d/:ro
+    networks:
+      - mariadb-network
+
+  api:
+    build: .
+    container_name: LMPE_API-${NAME_ENV}
+    depends_on:
+      - mariadb
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=TableMaster;Database=TableMaster;User Id=sa;Password=${DB_PASSWORD};Encrypt=False;TrustServerCertificate=False;
+    ports:
+      - "${API_PORT}:8080"
+    restart: always
+    networks:
+      - mariadb-network
+
+networks:
+   mariadb-network:
+    driver: bridge
