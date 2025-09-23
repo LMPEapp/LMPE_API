@@ -21,10 +21,17 @@ namespace LMPE_API.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<GroupeConversation>> GetAll()
         {
-            // Récupère l'ID de l'utilisateur depuis le token JWT
-            var userId = Convert.ToInt64(User.Claims.First(c => c.Type == "Id").Value);
-            var groupes = _dal.GetAll(userId);
-            return Ok(groupes);
+            try
+            {
+                // Récupère l'ID de l'utilisateur depuis le token JWT
+                var userId = Convert.ToInt64(User.Claims.First(c => c.Type == "Id").Value);
+                var groupes = _dal.GetAll(userId);
+                return Ok(groupes);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
 
@@ -33,9 +40,16 @@ namespace LMPE_API.Controllers
         [HttpPost]
         public ActionResult<GroupeConversation> Create([FromBody] GroupeConversationIn input)
         {
-            var id = _dal.Insert(input);
-            var g = _dal.GetById(id)!;
-            return CreatedAtAction(nameof(GetById), new { id = g.Id }, g);
+            try
+            {
+                var id = _dal.Insert(input);
+                var g = _dal.GetById(id)!;
+                return CreatedAtAction(nameof(GetById), new { id = g.Id }, g);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // GET /groups/{id}
@@ -43,9 +57,16 @@ namespace LMPE_API.Controllers
         [HttpGet("{id:long}")]
         public ActionResult<GroupeConversation> GetById(long id)
         {
-            var g = _dal.GetById(id);
-            if (g == null) return NotFound();
-            return Ok(g);
+            try
+            {
+                var g = _dal.GetById(id);
+                if (g == null) return NotFound();
+                return Ok(g);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // PUT /groups/{id}
@@ -53,7 +74,14 @@ namespace LMPE_API.Controllers
         [HttpPut("{id:long}")]
         public IActionResult Update(long id, [FromBody] GroupeConversationIn input)
         {
-            return _dal.Update(id, input) ? NoContent() : NotFound();
+            try
+            {
+                return _dal.Update(id, input) ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // DELETE /groups/{id}
@@ -61,7 +89,14 @@ namespace LMPE_API.Controllers
         [HttpDelete("{id:long}")]
         public IActionResult Delete(long id)
         {
-            return _dal.Delete(id) ? NoContent() : NotFound();
+            try
+            {
+                return _dal.Delete(id) ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // POST /groups/{groupId}/users
@@ -69,8 +104,15 @@ namespace LMPE_API.Controllers
         [HttpPost("{groupId:long}/users")]
         public IActionResult AddUsers(long groupId, [FromBody] UserGroupeIn input)
         {
-            _dal.AddUsers(groupId, input.UserIds);
-            return NoContent();
+            try
+            {
+                _dal.AddUsers(groupId, input.UserIds);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // DELETE /groups/{groupId}/users/{userId}
@@ -78,7 +120,14 @@ namespace LMPE_API.Controllers
         [HttpDelete("{groupId:long}/users/{userId:long}")]
         public IActionResult RemoveUser(long groupId, long userId)
         {
-            return _dal.RemoveUser(groupId, userId) ? NoContent() : NotFound();
+            try
+            {
+                return _dal.RemoveUser(groupId, userId) ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // GET /groups/{groupId}/users
@@ -86,7 +135,14 @@ namespace LMPE_API.Controllers
         [HttpGet("{groupId:long}/users")]
         public ActionResult<IEnumerable<User>> GetUsers(long groupId)
         {
-            return Ok(_dal.GetUsers(groupId)); // renvoie bien les utilisateurs complets
+            try
+            {
+                return Ok(_dal.GetUsers(groupId)); // renvoie bien les utilisateurs complets
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
     }
 

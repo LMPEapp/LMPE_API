@@ -26,16 +26,24 @@ namespace LMPE_API.Controllers
         [AllowAnonymous]
         public IActionResult Login([FromBody] AuthModels.LoginRequest input)
         {
-            var user = _dal.GetByEmail(input.Email);
-            if(!(input.Email=="admin" && input.Password == "admin"))
+            try
             {
-                if (user == null || !BCrypt.Net.BCrypt.Verify(input.Password, user.PasswordHash))
-                    return Unauthorized("Email ou mot de passe invalide");
+                var user = _dal.GetByEmail(input.Email);
+                if (!(input.Email == "admin" && input.Password == "admin"))
+                {
+                    if (user == null || !BCrypt.Net.BCrypt.Verify(input.Password, user.PasswordHash))
+                        return Unauthorized("Email ou mot de passe invalide");
+                }
+
+
+                var token = _jwtService.GenerateToken(user.Id, user.IsAdmin);
+                return Ok(new LoginRequestOut { Token = token, User = user });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
             }
             
-
-            var token = _jwtService.GenerateToken(user.Id, user.IsAdmin);
-            return Ok(new LoginRequestOut { Token=token,User= user });
         }
 
         // POST /auth/change-password
@@ -43,45 +51,52 @@ namespace LMPE_API.Controllers
         [Authorize]
         public IActionResult ChangePassword([FromBody] AuthModels.ChangePasswordRequest input)
         {
-            // Récupérer l'ID et isAdmin depuis le token JWT
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-            var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
-
-            if (userIdClaim == null || isAdminClaim == null)
-                return Unauthorized("Token invalide");
-
-            long tokenUserId = long.Parse(userIdClaim);
-            bool isAdmin = bool.Parse(isAdminClaim);
-
-            User? user = null;
-
-            if (isAdmin && input.UserId.HasValue)
+            try
             {
-                // Admin peut changer le mot de passe de n'importe quel utilisateur
-                user = _dal.GetById(input.UserId.Value);
-                if (user == null)
-                    return NotFound("Utilisateur introuvable");
+                // Récupérer l'ID et isAdmin depuis le token JWT
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
+
+                if (userIdClaim == null || isAdminClaim == null)
+                    return Unauthorized("Token invalide");
+
+                long tokenUserId = long.Parse(userIdClaim);
+                bool isAdmin = bool.Parse(isAdminClaim);
+
+                User? user = null;
+
+                if (isAdmin && input.UserId.HasValue)
+                {
+                    // Admin peut changer le mot de passe de n'importe quel utilisateur
+                    user = _dal.GetById(input.UserId.Value);
+                    if (user == null)
+                        return NotFound("Utilisateur introuvable");
+                }
+                else
+                {
+                    // Utilisateur normal doit changer son propre mot de passe
+                    user = _dal.GetById(tokenUserId);
+                    if (user == null || string.IsNullOrEmpty(input.OldPassword) || !BCrypt.Net.BCrypt.Verify(input.OldPassword, user.PasswordHash))
+                        return Unauthorized("Ancien mot de passe incorrect ou non autorisé");
+                }
+
+                // Hash et update
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.NewPassword);
+                _dal.Update(user.Id, new UserIn
+                {
+                    Email = user.Email,
+                    Pseudo = user.Pseudo,
+                    PasswordHash = user.PasswordHash,
+                    UrlImage = user.UrlImage,
+                    IsAdmin = user.IsAdmin
+                });
+
+                return NoContent();
             }
-            else
+            catch (Exception ex)
             {
-                // Utilisateur normal doit changer son propre mot de passe
-                user = _dal.GetById(tokenUserId);
-                if (user == null || string.IsNullOrEmpty(input.OldPassword) || !BCrypt.Net.BCrypt.Verify(input.OldPassword, user.PasswordHash))
-                    return Unauthorized("Ancien mot de passe incorrect ou non autorisé");
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
             }
-
-            // Hash et update
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.NewPassword);
-            _dal.Update(user.Id, new UserIn
-            {
-                Email = user.Email,
-                Pseudo = user.Pseudo,
-                PasswordHash = user.PasswordHash,
-                UrlImage = user.UrlImage,
-                IsAdmin = user.IsAdmin
-            });
-
-            return NoContent();
         }
 
     }

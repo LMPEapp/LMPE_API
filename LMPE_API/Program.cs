@@ -15,6 +15,7 @@ var jwtExpireHours = int.Parse(builder.Configuration["Jwt:ExpireHours"]!);
 builder.Services.AddSingleton<Database>();
 builder.Services.AddScoped<UserDal>();
 builder.Services.AddScoped<GroupeConversationDal>();
+builder.Services.AddScoped<MessageDal>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

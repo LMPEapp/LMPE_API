@@ -21,8 +21,15 @@ namespace LMPE_API.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<User>> GetAll()
         {
-            var users = _dal.GetAll();
-            return Ok(users);
+            try
+            {
+                var users = _dal.GetAll();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // GET /user/{id}
@@ -30,9 +37,16 @@ namespace LMPE_API.Controllers
         [HttpGet("{id:long}")]
         public ActionResult<User> GetById(long id)
         {
-            var user = _dal.GetById(id);
-            if (user == null) return NotFound();
-            return Ok(user);
+            try
+            {
+                var user = _dal.GetById(id);
+                if (user == null) return NotFound();
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // POST /user
@@ -40,13 +54,20 @@ namespace LMPE_API.Controllers
         [HttpPost]
         public ActionResult<User> Create([FromBody] UserIn input)
         {
-            // ⚡ Hash du mot de passe
-            input.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.PasswordHash);
+            try
+            {
+                // ⚡ Hash du mot de passe
+                input.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.PasswordHash);
 
-            var id = _dal.Insert(input);
-            var user = _dal.GetById(id)!;
+                var id = _dal.Insert(input);
+                var user = _dal.GetById(id)!;
 
-            return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
+                return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // PUT /user/{id}
@@ -54,19 +75,33 @@ namespace LMPE_API.Controllers
         [HttpPut("{id:long}")]
         public IActionResult Update(long id, [FromBody] UserIn input)
         {
-            // ⚡ Rehash du mot de passe si présent
-            input.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.PasswordHash);
+            try
+            {
+                // ⚡ Rehash du mot de passe si présent
+                input.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.PasswordHash);
 
-            var ok = _dal.Update(id, input);
-            return ok ? NoContent() : NotFound();
+                var ok = _dal.Update(id, input);
+                return ok ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         // DELETE /user/{id}
         [HttpDelete("{id:long}")]
         public IActionResult Delete(long id)
         {
-            var ok = _dal.Delete(id);
-            return ok ? NoContent() : NotFound();
+            try
+            {
+                var ok = _dal.Delete(id);
+                return ok ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
     }
 }
