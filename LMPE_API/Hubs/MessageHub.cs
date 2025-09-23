@@ -6,6 +6,10 @@ namespace LMPE_API.Hubs
 {
     public class MessageHub : Hub
     {
+        public static string UserTyping = "UserTyping";
+        public static string ReceiveMessage = "ReceiveMessage";
+
+        public static string Groupe = "group_";
         // Rejoindre un groupe SignalR côté client
         public async Task JoinGroup(long groupId)
         {
@@ -20,8 +24,8 @@ namespace LMPE_API.Hubs
         public async Task Typing(long groupId, long userId)
         {
             // On notifie tous les autres clients sauf celui qui tape
-            await Clients.GroupExcept($"group_{groupId}", Context.ConnectionId)
-                         .SendAsync("UserTyping", userId);
+            await Clients.GroupExcept($"{MessageHub.Groupe}{groupId}", Context.ConnectionId)
+                         .SendAsync(MessageHub.UserTyping, userId);
         }
     }
 }

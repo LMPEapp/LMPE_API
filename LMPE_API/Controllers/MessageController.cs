@@ -51,7 +51,7 @@ namespace LMPE_API.Controllers
                 var id = _dal.Insert(groupId, input);
                 var message = _dal.GetById(id)!;
 
-                _hub.Clients.Group($"group_{groupId}").SendAsync("ReceiveMessage", message);
+                _hub.Clients.Group($"{MessageHub.Groupe}{groupId}").SendAsync(MessageHub.ReceiveMessage, message);
 
                 return Ok(message);
             }
