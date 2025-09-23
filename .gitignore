@@ -5,6 +5,8 @@
 
 # dotenv files
 .env
+# bdd files
+LMPE_API/db_data/*
 
 # User-specific files
 *.rsuser
