@@ -13,12 +13,12 @@ namespace LMPE_API.Hubs
         // Rejoindre un groupe SignalR côté client
         public async Task JoinGroup(long groupId)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"group_{groupId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"{MessageHub.Groupe}{groupId}");
         }
 
         public async Task LeaveGroup(long groupId)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"group_{groupId}");
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{MessageHub.Groupe}{groupId}");
         }
         // Typing indicator
         public async Task Typing(long groupId, long userId)
