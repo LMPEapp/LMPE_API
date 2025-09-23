@@ -1,23 +1,71 @@
+using LMPE_API.DAL;
+using LMPE_API.Data;
+using LMPE_API.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Récupérer JWT depuis configuration
+var jwtSecret = builder.Configuration["Jwt:Secret"]!;
+var jwtExpireHours = int.Parse(builder.Configuration["Jwt:ExpireHours"]!);
 
+// Services
+builder.Services.AddSingleton<Database>();
+builder.Services.AddScoped<UserDal>();
+builder.Services.AddScoped<JwtService>();
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        };
+    });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
-app.Run();
+// Swagger uniquement en dev
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+    app.Start();
+
+    if (app.Urls.Any())
+    {
+        var url = app.Urls.First();
+        var swaggerUrl = url + "/swagger";
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = swaggerUrl,
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    }
+
+    app.WaitForShutdown();
+}
+else
+{
+    app.Run();
+}
