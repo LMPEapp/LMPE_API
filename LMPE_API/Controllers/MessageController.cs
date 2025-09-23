@@ -1,7 +1,9 @@
 ﻿using LMPE_API.DAL;
+using LMPE_API.Hubs;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace LMPE_API.Controllers
 {
@@ -10,11 +12,14 @@ namespace LMPE_API.Controllers
     public class MessageController : ControllerBase
     {
         private readonly MessageDal _dal;
+        private readonly IHubContext<MessageHub> _hub;
 
-        public MessageController(MessageDal dal)
+        public MessageController(MessageDal dal, IHubContext<MessageHub> hub)
         {
             _dal = dal;
+            _hub = hub;
         }
+
 
         // GET groupe/{groupId}
         [Authorize]
@@ -45,6 +50,9 @@ namespace LMPE_API.Controllers
 
                 var id = _dal.Insert(groupId, input);
                 var message = _dal.GetById(id)!;
+
+                _hub.Clients.Group($"group_{groupId}").SendAsync("ReceiveMessage", message);
+
                 return Ok(message);
             }
             catch (Exception ex)
