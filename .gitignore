@@ -10,6 +10,7 @@ LMPE_API/db_data/*
 
 # appsettings.json
 LMPE_API/appsettings.json
+LMPE_API/appsettings.Development.json
 
 # User-specific files
 *.rsuser
