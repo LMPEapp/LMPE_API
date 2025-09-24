@@ -46,6 +46,41 @@ namespace LMPE_API.Controllers
             
         }
 
+        [HttpGet("validate")]
+        [Authorize]
+        public IActionResult ValidateToken()
+        {
+            try
+            {
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
+
+                if (userIdClaim == null || isAdminClaim == null)
+                    return Unauthorized();
+
+                // Conversion
+                if (!long.TryParse(userIdClaim, out long userId))
+                    return Unauthorized();
+
+                if (!bool.TryParse(isAdminClaim, out bool isAdmin))
+                    return Unauthorized();
+
+                // Génère un nouveau token
+                var token = _jwtService.GenerateToken(userId, isAdmin);
+
+                // Récupère l’utilisateur
+                var user = _dal.GetById(userId);
+
+                return Ok(new LoginRequestOut { Token = token, User = user });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
+        }
+
+
+
         // POST /auth/change-password
         [HttpPost("change-password")]
         [Authorize]
