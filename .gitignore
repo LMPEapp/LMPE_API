@@ -8,6 +8,9 @@
 # bdd files
 LMPE_API/db_data/*
 
+# appsettings.json
+LMPE_API/appsettings.json
+
 # User-specific files
 *.rsuser
 *.suo
