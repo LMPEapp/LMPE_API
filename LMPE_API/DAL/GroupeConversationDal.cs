@@ -12,7 +12,8 @@ namespace LMPE_API.DAL
             return new GroupeConversation
             {
                 Id = Convert.ToInt64(record["Id"]),
-                Nom = Convert.ToString(record["Nom"])!,
+                Name = Convert.ToString(record["Name"])!,
+                LastActivity = Convert.ToDateTime(record["LastActivity"])!,
                 CreatedAt = Convert.ToDateTime(record["CreatedAt"])
             };
         }
@@ -33,10 +34,14 @@ namespace LMPE_API.DAL
             using var conn = _db.GetConnection();
             conn.Open();
             using var cmd = new MySqlCommand(@"
-                SELECT g.*
+                SELECT g.*, 
+                COALESCE(MAX(m.CreatedAt), g.CreatedAt) AS LastActivity
                 FROM GroupeConversation g
                 INNER JOIN User_Groupe ug ON g.Id = ug.GroupeId
-                WHERE ug.UserId = @UserId", conn);
+                LEFT JOIN Message m ON g.Id = m.GroupeId
+                WHERE ug.UserId = @UserId
+                GROUP BY g.Id
+                ORDER BY LastActivity DESC", conn);
             cmd.Parameters.AddWithValue("@UserId", userId);
             using var reader = cmd.ExecuteReader();
             while (reader.Read()) list.Add(GroupeConversationMapper.Map(reader));
@@ -48,7 +53,7 @@ namespace LMPE_API.DAL
         {
             using var conn = _db.GetConnection();
             conn.Open();
-            using var cmd = new MySqlCommand("SELECT * FROM GroupeConversation WHERE Id=@Id", conn);
+            using var cmd = new MySqlCommand("SELECT *, CreatedAt AS LastActivity FROM GroupeConversation WHERE Id=@Id", conn);
             cmd.Parameters.AddWithValue("@Id", id);
             using var reader = cmd.ExecuteReader();
             return reader.Read() ? GroupeConversationMapper.Map(reader) : null;
@@ -59,9 +64,9 @@ namespace LMPE_API.DAL
             using var conn = _db.GetConnection();
             conn.Open();
             using var cmd = new MySqlCommand(@"
-                INSERT INTO GroupeConversation (Nom) VALUES (@Nom);
+                INSERT INTO GroupeConversation (Name) VALUES (@Name);
                 SELECT LAST_INSERT_ID();", conn);
-            cmd.Parameters.AddWithValue("@Nom", g.Nom);
+            cmd.Parameters.AddWithValue("@Name", g.Name);
             return Convert.ToInt64(cmd.ExecuteScalar());
         }
 
@@ -69,9 +74,9 @@ namespace LMPE_API.DAL
         {
             using var conn = _db.GetConnection();
             conn.Open();
-            using var cmd = new MySqlCommand("UPDATE GroupeConversation SET Nom=@Nom WHERE Id=@Id", conn);
+            using var cmd = new MySqlCommand("UPDATE GroupeConversation SET Name=@Name WHERE Id=@Id", conn);
             cmd.Parameters.AddWithValue("@Id", id);
-            cmd.Parameters.AddWithValue("@Nom", g.Nom);
+            cmd.Parameters.AddWithValue("@Name", g.Name);
             return cmd.ExecuteNonQuery() > 0;
         }
 
@@ -91,12 +96,16 @@ namespace LMPE_API.DAL
             conn.Open();
             foreach (var userId in userIds)
             {
-                using var cmd = new MySqlCommand(@"
+                try
+                {
+                    using var cmd = new MySqlCommand(@"
                     INSERT IGNORE INTO User_Groupe (GroupeId, UserId)
                     VALUES (@GroupeId, @UserId)", conn);
-                cmd.Parameters.AddWithValue("@GroupeId", groupId);
-                cmd.Parameters.AddWithValue("@UserId", userId);
-                cmd.ExecuteNonQuery();
+                    cmd.Parameters.AddWithValue("@GroupeId", groupId);
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+                    cmd.ExecuteNonQuery();
+                }
+                catch (Exception ex) { }
             }
         }
 
