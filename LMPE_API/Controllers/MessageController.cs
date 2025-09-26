@@ -24,7 +24,7 @@ namespace LMPE_API.Controllers
         // GET groupe/{groupId}
         [Authorize]
         [HttpGet("groupe/{groupId:long}")]
-        public ActionResult<IEnumerable<Message>> GetByGroup(long groupId, [FromQuery] long? lastMessageId = null)
+        public ActionResult<IEnumerable<MessageOut>> GetByGroup(long groupId, [FromQuery] long? lastMessageId = null)
         {
             try
             {
@@ -41,7 +41,7 @@ namespace LMPE_API.Controllers
         // POST groupe/{groupId}
         [Authorize]
         [HttpPost("groupe/{groupId:long}")]
-        public ActionResult<Message> Create(long groupId, [FromBody] MessageIn input)
+        public ActionResult<MessageOut> Create(long groupId, [FromBody] MessageIn input)
         {
             try
             {

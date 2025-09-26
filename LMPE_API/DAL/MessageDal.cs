@@ -31,30 +31,32 @@ namespace LMPE_API.DAL
         }
 
         // -------------------- Messages par groupe --------------------
-        public IEnumerable<Message> GetByGroupId(long groupId, int limit, long? lastMessageId = null)
+        public IEnumerable<MessageOut> GetByGroupId(long groupId, int limit, long? lastMessageId = null)
         {
-            var list = new List<Message>();
+            var list = new List<MessageOut>();
             using var conn = _db.GetConnection();
             conn.Open();
 
             string sql;
             if (lastMessageId == null)
             {
-                // Les 50 derniers messages
                 sql = @"
-                    SELECT * FROM Message
-                    WHERE GroupeId=@GroupeId
-                    ORDER BY Id DESC
-                    LIMIT @Limit";
+            SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
+            FROM Message m
+            JOIN Users u ON u.Id = m.UserId
+            WHERE m.GroupeId=@GroupeId
+            ORDER BY m.Id DESC
+            LIMIT @Limit";
             }
             else
             {
-                // Les 50 messages plus anciens que lastMessageId
                 sql = @"
-                    SELECT * FROM Message
-                    WHERE GroupeId=@GroupeId AND Id < @LastId
-                    ORDER BY Id DESC
-                    LIMIT @Limit";
+            SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
+            FROM Message m
+            JOIN Users u ON u.Id = m.UserId
+            WHERE m.GroupeId=@GroupeId AND m.Id < @LastId
+            ORDER BY m.Id DESC
+            LIMIT @Limit";
             }
 
             using var cmd = new MySqlCommand(sql, conn);
@@ -65,30 +67,62 @@ namespace LMPE_API.DAL
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
-                list.Add(MessageMapper.Map(reader));
+            {
+                list.Add(new MessageOut
+                {
+                    Id = Convert.ToInt64(reader["Id"]),
+                    GroupeId = Convert.ToInt64(reader["GroupeId"]),
+                    UserId = Convert.ToInt64(reader["UserId"]),
+                    Type = reader["Type"].ToString()!,
+                    Content = reader["Content"].ToString()!,
+                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
 
-            // On renvoie dans l'ordre croissant (ancien → récent)
+                    UserEmail = reader["Email"].ToString()!,
+                    UserPseudo = reader["Pseudo"].ToString()!,
+                    UserUrlImage = reader["UrlImage"] == DBNull.Value ? null : reader["UrlImage"].ToString(),
+                    UserIsAdmin = Convert.ToBoolean(reader["IsAdmin"])
+                });
+            }
+
             return list.OrderBy(m => m.Id);
         }
 
-        public Message? GetById(long Id)
+        public MessageOut? GetById(long Id)
         {
-            var list = new List<Message>();
             using var conn = _db.GetConnection();
             conn.Open();
 
             string sql = @"
-                    SELECT * FROM Message
-                    WHERE Id=@Id";
+        SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
+        FROM Message m
+        JOIN Users u ON u.Id = m.UserId
+        WHERE m.Id=@Id";
 
             using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("Id", Id);
+            cmd.Parameters.AddWithValue("@Id", Id);
 
             using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                list.Add(MessageMapper.Map(reader));
-            return list.FirstOrDefault();
+            if (reader.Read())
+            {
+                return new MessageOut
+                {
+                    Id = Convert.ToInt64(reader["Id"]),
+                    GroupeId = Convert.ToInt64(reader["GroupeId"]),
+                    UserId = Convert.ToInt64(reader["UserId"]),
+                    Type = reader["Type"].ToString()!,
+                    Content = reader["Content"].ToString()!,
+                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+
+                    UserEmail = reader["Email"].ToString()!,
+                    UserPseudo = reader["Pseudo"].ToString()!,
+                    UserUrlImage = reader["UrlImage"] == DBNull.Value ? null : reader["UrlImage"].ToString(),
+                    UserIsAdmin = Convert.ToBoolean(reader["IsAdmin"])
+                };
+            }
+
+            return null;
         }
+
 
 
         public long Insert(long groupId, MessageIn m)
