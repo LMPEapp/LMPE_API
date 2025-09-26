@@ -79,7 +79,7 @@ namespace LMPE_API.Controllers
             {
                 if (id == 1)
                 {
-                    return Forbid();
+                    return Unauthorized("Pas le droit de modifier Admin");
                 }
                 var ok = _dal.Update(id, input);
                 return ok ? NoContent() : NotFound();
@@ -98,7 +98,7 @@ namespace LMPE_API.Controllers
             {
                 if (id == 1)
                 {
-                    return Forbid();
+                    return Unauthorized("Pas le droit de modifier Admin");
                 }
                 var ok = _dal.Delete(id);
                 return ok ? NoContent() : NotFound();

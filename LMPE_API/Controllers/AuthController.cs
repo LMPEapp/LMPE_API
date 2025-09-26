@@ -98,6 +98,11 @@ namespace LMPE_API.Controllers
                 long tokenUserId = long.Parse(userIdClaim);
                 bool isAdmin = bool.Parse(isAdminClaim);
 
+                if (input.UserId == 1)
+                {
+                    return Unauthorized("Pas le droit de modifier Admin");
+                }
+
                 User? user = null;
 
                 if (isAdmin && input.UserId.HasValue)
@@ -117,16 +122,8 @@ namespace LMPE_API.Controllers
 
                 // Hash et update
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.NewPassword);
-                _dal.Update(user.Id, new UserIn
-                {
-                    Email = user.Email,
-                    Pseudo = user.Pseudo,
-                    PasswordHash = user.PasswordHash,
-                    UrlImage = user.UrlImage,
-                    IsAdmin = user.IsAdmin
-                });
-
-                return NoContent();
+                var ok = _dal.UpdatePawword(user.Id, user.PasswordHash);
+                return ok ? NoContent() : NotFound();
             }
             catch (Exception ex)
             {

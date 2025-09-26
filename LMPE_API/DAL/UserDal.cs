@@ -99,6 +99,21 @@ namespace LMPE_API.DAL
             return cmd.ExecuteNonQuery() > 0;
         }
 
+        public bool UpdatePawword(long id, string PasswordHash)
+        {
+            using var conn = _db.GetConnection();
+            conn.Open();
+            using var cmd = new MySqlCommand(@"
+            UPDATE Users
+            SET PasswordHash=@PasswordHash
+            WHERE Id=@Id", conn);
+
+            cmd.Parameters.AddWithValue("@Id", id);
+            cmd.Parameters.AddWithValue("@PasswordHash", PasswordHash);
+
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
         public bool Delete(long id)
         {
             using var conn = _db.GetConnection();
