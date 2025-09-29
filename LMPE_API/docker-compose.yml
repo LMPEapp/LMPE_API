@@ -9,7 +9,7 @@ services:
       - "${DB_PORT}:3306"
     environment:
       MARIADB_ROOT_PASSWORD: "${DB_PASSWORD}"
-      MARIADB_DATABASE: "mydatabase"
+      MARIADB_DATABASE: "LMPE"
       MARIADB_USER: "user"
       MARIADB_PASSWORD: "${DB_PASSWORD}"
     volumes:
@@ -25,7 +25,10 @@ services:
       - mariadb
     environment:
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=TableMaster;Database=TableMaster;User Id=sa;Password=${DB_PASSWORD};Encrypt=False;TrustServerCertificate=False;
+      - ASPNETCORE_ENVIRONMENT=${NAME_ENV}
+      - ConnectionStrings__DefaultConnection=Server=mariadb;Port=3306;Database=LMPE;User Id=root;Password=${DB_PASSWORD};
+      - Jwt__Secret=MaSuperCleSecreteUltraSecurisee123!
+      - Jwt__ExpireHours=1
     ports:
       - "${API_PORT}:8080"
     restart: always
@@ -33,5 +36,5 @@ services:
       - mariadb-network
 
 networks:
-   mariadb-network:
+  mariadb-network:
     driver: bridge
