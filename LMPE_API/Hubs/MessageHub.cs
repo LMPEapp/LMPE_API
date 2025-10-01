@@ -8,6 +8,8 @@ namespace LMPE_API.Hubs
     {
         public static string UserTyping = "UserTyping";
         public static string ReceiveMessage = "ReceiveMessage";
+        public static string UpdateMessage = "UpdateMessage";
+        public static string DeleteMessage = "DeleteMessage";
 
         public static string Groupe = "group_";
         // Rejoindre un groupe SignalR côté client
@@ -21,11 +23,11 @@ namespace LMPE_API.Hubs
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{MessageHub.Groupe}{groupId}");
         }
         // Typing indicator
-        public async Task Typing(long groupId, long userId)
+        public async Task Typing(long groupId, User user)
         {
             // On notifie tous les autres clients sauf celui qui tape
             await Clients.GroupExcept($"{MessageHub.Groupe}{groupId}", Context.ConnectionId)
-                         .SendAsync(MessageHub.UserTyping, userId);
+                         .SendAsync(MessageHub.UserTyping, user);
         }
     }
 }
