@@ -7,18 +7,20 @@ namespace LMPE_API.DAL
 {
     public static class MessageMapper
     {
-        public static Message Map(IDataRecord record)
+        public static MessageOut Map(IDataRecord record) => new MessageOut
         {
-            return new Message
-            {
-                Id = Convert.ToInt64(record["Id"]),
-                GroupeId = Convert.ToInt64(record["GroupeId"]),
-                UserId = Convert.ToInt64(record["UserId"]),
-                Type = Convert.ToString(record["Type"])!,
-                Content = Convert.ToString(record["Content"])!,
-                CreatedAt = Convert.ToDateTime(record["CreatedAt"])
-            };
-        }
+            Id = Convert.ToInt64(record["Id"]),
+            GroupeId = Convert.ToInt64(record["GroupeId"]),
+            UserId = Convert.ToInt64(record["UserId"]),
+            Type = record["Type"].ToString()!,
+            Content = record["Content"].ToString()!,
+            CreatedAt = Convert.ToDateTime(record["CreatedAt"]),
+
+            UserEmail = record["Email"].ToString()!,
+            UserPseudo = record["Pseudo"].ToString()!,
+            UserUrlImage = record["UrlImage"] == DBNull.Value ? null : record["UrlImage"].ToString(),
+            UserIsAdmin = Convert.ToBoolean(record["IsAdmin"])
+        };
     }
 
     public class MessageDal
@@ -68,20 +70,7 @@ namespace LMPE_API.DAL
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                list.Add(new MessageOut
-                {
-                    Id = Convert.ToInt64(reader["Id"]),
-                    GroupeId = Convert.ToInt64(reader["GroupeId"]),
-                    UserId = Convert.ToInt64(reader["UserId"]),
-                    Type = reader["Type"].ToString()!,
-                    Content = reader["Content"].ToString()!,
-                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-
-                    UserEmail = reader["Email"].ToString()!,
-                    UserPseudo = reader["Pseudo"].ToString()!,
-                    UserUrlImage = reader["UrlImage"] == DBNull.Value ? null : reader["UrlImage"].ToString(),
-                    UserIsAdmin = Convert.ToBoolean(reader["IsAdmin"])
-                });
+                list.Add(MessageMapper.Map(reader));
             }
 
             return list.OrderBy(m => m.Id);
@@ -104,20 +93,7 @@ namespace LMPE_API.DAL
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
             {
-                return new MessageOut
-                {
-                    Id = Convert.ToInt64(reader["Id"]),
-                    GroupeId = Convert.ToInt64(reader["GroupeId"]),
-                    UserId = Convert.ToInt64(reader["UserId"]),
-                    Type = reader["Type"].ToString()!,
-                    Content = reader["Content"].ToString()!,
-                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-
-                    UserEmail = reader["Email"].ToString()!,
-                    UserPseudo = reader["Pseudo"].ToString()!,
-                    UserUrlImage = reader["UrlImage"] == DBNull.Value ? null : reader["UrlImage"].ToString(),
-                    UserIsAdmin = Convert.ToBoolean(reader["IsAdmin"])
-                };
+                return MessageMapper.Map(reader);
             }
 
             return null;

@@ -46,8 +46,16 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                // optionnel : récupérer UserId depuis le token JWT
-                // input.UserId = Convert.ToInt64(User.Claims.First(c => c.Type == "Id").Value);
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+
+                if (userIdClaim == null)
+                    return Unauthorized();
+
+                // Conversion
+                if (!long.TryParse(userIdClaim, out long userId))
+                    return Unauthorized();
+
+                input.UserId = userId;
 
                 var id = _dal.Insert(groupId, input);
                 var message = _dal.GetById(id)!;

@@ -17,16 +17,6 @@ namespace LMPE_API.Models
         public string? UserUrlImage { get; set; }
         public bool UserIsAdmin { get; set; }
     }
-    public class Message
-    {
-        public long Id { get; set; }
-        public long GroupeId { get; set; }
-        public long UserId { get; set; }
-        public string Type { get; set; } = "texte"; // 'texte','image','video','fichier'
-        public string Content { get; set; } = "";
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    }
-
     public class MessageIn
     {
         public long UserId { get; set; } // peut être récupéré depuis JWT
