@@ -29,7 +29,11 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var agendas = _dal.GetAll(startDate, endDate);
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+                if (userIdClaim == null || !long.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                var agendas = _dal.GetAll(userId, startDate, endDate);
                 return Ok(agendas);
             }
             catch (ArgumentException ex)

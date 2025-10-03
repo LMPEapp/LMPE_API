@@ -32,7 +32,7 @@ namespace LMPE_API.DAL
             _db = db;
         }
 
-        public IEnumerable<AgendaOut> GetAll(DateTime? startDate = null, DateTime? endDate = null)
+        public IEnumerable<AgendaOut> GetAll(long idUser, DateTime? startDate = null, DateTime? endDate = null)
         {
             if (!startDate.HasValue || !endDate.HasValue)
             {
@@ -50,16 +50,29 @@ namespace LMPE_API.DAL
             conn.Open();
 
             string sql = @"
-                SELECT a.*, 
-                       u.Email AS CreatorEmail, u.Pseudo AS CreatorPseudo, 
-                       u.UrlImage AS CreatorUrlImage, u.IsAdmin AS CreatorIsAdmin
+                SELECT DISTINCT a.*, 
+                       u.Email AS CreatorEmail, 
+                       u.Pseudo AS CreatorPseudo, 
+                       u.UrlImage AS CreatorUrlImage, 
+                       u.IsAdmin AS CreatorIsAdmin
                 FROM Agenda a
                 LEFT JOIN Users u ON u.Id = a.CreatedBy
-                WHERE a.StartDate >= @StartDate AND a.EndDate <= @EndDate";
+                LEFT JOIN Agenda_User au ON au.AgendaId = a.Id
+                WHERE (
+                        a.StartDate <= @EndDate
+                        AND a.EndDate >= @StartDate
+                      )
+                  AND (
+                        a.CreatedBy = @UserId
+                        OR au.UserId = @UserId
+                        OR a.IsPublic = TRUE
+                      )
+                ORDER BY a.StartDate ASC;";
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@StartDate", startDate.Value);
             cmd.Parameters.AddWithValue("@EndDate", endDate.Value);
+            cmd.Parameters.AddWithValue("@UserId", idUser);
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -69,6 +82,7 @@ namespace LMPE_API.DAL
 
             return list;
         }
+
 
 
         public AgendaOut? GetById(long id)
