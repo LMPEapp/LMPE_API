@@ -95,6 +95,22 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
+
+                if (userIdClaim == null || isAdminClaim == null)
+                    return Unauthorized("Token invalide");
+
+                long tokenUserId = long.Parse(userIdClaim);
+                bool isAdmin = bool.Parse(isAdminClaim);
+
+                var resulttmp = _dal.GetById(id);
+
+                if(resulttmp.CreatedBy != tokenUserId && !isAdmin)
+                {
+                    return Unauthorized("Token invalide");
+                }
+
                 var result = _dal.Update(id, input);
                 if (result)
                 {
@@ -117,6 +133,19 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
+
+                long tokenUserId = long.Parse(userIdClaim);
+                bool isAdmin = bool.Parse(isAdminClaim);
+
+                var resulttmp = _dal.GetById(id);
+
+                if (resulttmp.CreatedBy != tokenUserId && !isAdmin)
+                {
+                    return Unauthorized("Token invalide");
+                }
+
                 var result = _dal.Delete(id);
                 if (result)
                 {
