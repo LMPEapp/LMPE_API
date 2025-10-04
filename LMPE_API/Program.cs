@@ -18,6 +18,7 @@ builder.Services.AddScoped<UserDal>();
 builder.Services.AddScoped<GroupeConversationDal>();
 builder.Services.AddScoped<MessageDal>();
 builder.Services.AddScoped<AgendaDal>();
+builder.Services.AddScoped<CourbeCADal>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -54,6 +55,7 @@ app.MapControllers();
 
 app.MapHub<MessageHub>("/messageHub"); // route du hub
 app.MapHub<AgendaHub>("/agendaHub"); // route du hub
+app.MapHub<CourbecaHub>("/courbecaHub"); // route du hub
 
 // Swagger uniquement en dev
 if (app.Environment.IsDevelopment())
