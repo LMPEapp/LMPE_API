@@ -24,7 +24,7 @@ namespace LMPE_API.Controllers
 
         [Authorize]
         [HttpGet]
-        public ActionResult<IEnumerable<CourbeCA>> GetAll([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        public ActionResult<IEnumerable<CourbeCAGroupByDatePoint>> GetAll([FromQuery] DateOnly startDate, [FromQuery] DateOnly endDate)
         {
             try
             {
@@ -95,7 +95,7 @@ namespace LMPE_API.Controllers
 
                 if (result)
                 {
-                    _hub.Clients.Group(globalGroup).SendAsync(CourbecaHub.CourbecaDeleted, id);
+                    _hub.Clients.Group(globalGroup).SendAsync(CourbecaHub.CourbecaDeleted, ca);
                 }
 
                 return result ? NoContent() : NotFound();
@@ -108,7 +108,7 @@ namespace LMPE_API.Controllers
 
         [Authorize]
         [HttpGet("sum")]
-        public ActionResult<decimal> GetSum([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        public ActionResult<decimal> GetSum([FromQuery] DateOnly startDate, [FromQuery] DateOnly endDate)
         {
             try
             {

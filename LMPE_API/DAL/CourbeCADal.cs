@@ -13,7 +13,7 @@ namespace LMPE_API.DAL
             {
                 Id = Convert.ToInt64(record["Id"]),
                 UserId = Convert.ToInt64(record["UserId"]),
-                DatePoint = Convert.ToDateTime(record["DatePoint"]),
+                DatePoint = DateOnly.FromDateTime(Convert.ToDateTime(record["DatePoint"])),
                 Amount = Convert.ToDecimal(record["Amount"]),
                 Description = record["Description"] as string,
                 CreatedAt = Convert.ToDateTime(record["CreatedAt"]),
@@ -35,30 +35,43 @@ namespace LMPE_API.DAL
             _db = db;
         }
 
-        public IEnumerable<CourbeCA> GetAll(DateTime startDate, DateTime endDate)
+        public IEnumerable<CourbeCAGroupByDatePoint> GetAll(DateOnly startDate, DateOnly endDate)
         {
-            var list = new List<CourbeCA>();
+            var list = new List<CourbeCAGroupByDatePoint>();
             using var conn = _db.GetConnection();
             conn.Open();
 
             var sql = @"
-                SELECT ca.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
-                FROM CourbeCA ca
-                INNER JOIN Users u ON ca.UserId = u.Id
-                WHERE ca.DatePoint BETWEEN @StartDate AND @EndDate
-                ORDER BY ca.DatePoint ASC";
+                SELECT 
+                    DatePoint,
+                    GROUP_CONCAT(Id) AS Ids,
+                    SUM(Amount) AS TotalAmount,
+                    COUNT(*) AS CountItems
+                FROM CourbeCA
+                WHERE DatePoint BETWEEN @StartDate AND @EndDate
+                GROUP BY DatePoint
+                ORDER BY DatePoint ASC";
 
             using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@StartDate", startDate);
-            cmd.Parameters.AddWithValue("@EndDate", endDate);
+            cmd.Parameters.AddWithValue("@StartDate", startDate.ToDateTime(new TimeOnly(0, 0)));
+            cmd.Parameters.AddWithValue("@EndDate", endDate.ToDateTime(new TimeOnly(0, 0)));
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                list.Add(CourbeCAMapper.Map(reader));
+                list.Add(new CourbeCAGroupByDatePoint
+                {
+                    ids = reader["Ids"].ToString(),
+                    DatePoint = DateOnly.FromDateTime(Convert.ToDateTime(reader["DatePoint"])),
+                    TotalAmount = reader.GetDecimal("TotalAmount"),
+                    CountItems = Convert.ToDecimal(reader["CountItems"]) // Count(*) retourne un long
+                });
             }
+
             return list;
         }
+
+
 
 
         public CourbeCA? GetById(long id)
@@ -104,15 +117,15 @@ namespace LMPE_API.DAL
             return cmd.ExecuteNonQuery() > 0;
         }
 
-        public decimal GetSum(DateTime startDate, DateTime endDate)
+        public decimal GetSum(DateOnly startDate, DateOnly endDate)
         {
             using var conn = _db.GetConnection();
             conn.Open();
             var sql = @"SELECT COALESCE(SUM(Amount),0) FROM CourbeCA 
                     WHERE DatePoint BETWEEN @StartDate AND @EndDate";
             using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@StartDate", startDate);
-            cmd.Parameters.AddWithValue("@EndDate", endDate);
+            cmd.Parameters.AddWithValue("@StartDate", startDate.ToDateTime(new TimeOnly(0, 0)));
+            cmd.Parameters.AddWithValue("@EndDate", endDate.ToDateTime(new TimeOnly(0, 0)));
             return Convert.ToDecimal(cmd.ExecuteScalar());
         }
     }
