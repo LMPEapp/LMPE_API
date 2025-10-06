@@ -24,11 +24,24 @@ namespace LMPE_API.Controllers
 
         [Authorize]
         [HttpGet]
-        public ActionResult<IEnumerable<CourbeCAGroupByDatePoint>> GetAll([FromQuery] DateOnly startDate, [FromQuery] DateOnly endDate)
+        public ActionResult<IEnumerable<CourbeCAGroupByDatePoint>> GetAllGroupeByDate([FromQuery] DateOnly startDate, [FromQuery] DateOnly endDate)
         {
             try
             {
-                return Ok(_dal.GetAll(startDate, endDate));
+                return Ok(_dal.GetAllGroupeByDate(startDate, endDate));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
+        }
+        [Authorize]
+        [HttpGet("data")]
+        public ActionResult<IEnumerable<CourbeCA>> GetAll(long? lastId = null, int pageSize = 30)
+        {
+            try
+            {
+                return Ok(_dal.GetAll(lastId, pageSize));
             }
             catch (Exception ex)
             {

@@ -35,7 +35,7 @@ namespace LMPE_API.DAL
             _db = db;
         }
 
-        public IEnumerable<CourbeCAGroupByDatePoint> GetAll(DateOnly startDate, DateOnly endDate)
+        public IEnumerable<CourbeCAGroupByDatePoint> GetAllGroupeByDate(DateOnly startDate, DateOnly endDate)
         {
             var list = new List<CourbeCAGroupByDatePoint>();
             using var conn = _db.GetConnection();
@@ -71,7 +71,38 @@ namespace LMPE_API.DAL
             return list;
         }
 
+        public IEnumerable<CourbeCA> GetAll(long? lastId, int pageSize)
+        {
+            var list = new List<CourbeCA>();
+            using var conn = _db.GetConnection();
+            conn.Open();
 
+            string sql = @"
+                SELECT ca.*, u.Email, u.IsAdmin, u.Pseudo, u.UrlImage
+                FROM lmpe.courbeca ca
+                JOIN lmpe.users u ON ca.UserId = u.Id
+                /**WHERE_CLAUSE**/
+                ORDER BY ca.Id DESC
+                LIMIT @PageSize";
+
+            if (lastId.HasValue)
+                sql = sql.Replace("/**WHERE_CLAUSE**/", "WHERE ca.Id < @LastId");
+            else
+                sql = sql.Replace("/**WHERE_CLAUSE**/", "");
+
+            using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@PageSize", pageSize);
+            if (lastId.HasValue)
+                cmd.Parameters.AddWithValue("@LastId", lastId.Value);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(CourbeCAMapper.Map(reader));
+            }
+
+            return list;
+        }
 
 
         public CourbeCA? GetById(long id)
