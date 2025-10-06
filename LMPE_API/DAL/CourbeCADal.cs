@@ -79,8 +79,8 @@ namespace LMPE_API.DAL
 
             string sql = @"
                 SELECT ca.*, u.Email, u.IsAdmin, u.Pseudo, u.UrlImage
-                FROM lmpe.courbeca ca
-                JOIN lmpe.users u ON ca.UserId = u.Id
+                FROM CourbeCA ca
+                JOIN Users u ON ca.UserId = u.Id
                 /**WHERE_CLAUSE**/
                 ORDER BY ca.Id DESC
                 LIMIT @PageSize";
