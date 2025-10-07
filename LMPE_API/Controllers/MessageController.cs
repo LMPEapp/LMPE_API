@@ -1,4 +1,5 @@
 ﻿using LMPE_API.DAL;
+using LMPE_API.Helpers;
 using LMPE_API.Hubs;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -29,7 +30,8 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var messages = _dal.GetByGroupId(groupId, 20, lastMessageId);
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+                var messages = _dal.GetByGroupId(groupId, tokenUserId, 20, lastMessageId);
                 return Ok(messages);
             }
             catch (Exception ex)
@@ -46,21 +48,22 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
-                if (userIdClaim == null)
-                    return Unauthorized();
-
-                // Conversion
-                if (!long.TryParse(userIdClaim, out long userId))
-                    return Unauthorized();
-
-                input.UserId = userId;
+                input.UserId = tokenUserId;
 
                 var id = _dal.Insert(groupId, input);
-                var message = _dal.GetById(id)!;
+                var message = _dal.GetById(id, tokenUserId)!;
 
                 _hub.Clients.Group($"{MessageHub.Groupe}{groupId}").SendAsync(MessageHub.ReceiveMessage, message);
+
+                var userIdsToNotify = _dal.GetUserIdsToNotify(groupId);
+
+                foreach (var userIdToNotify in userIdsToNotify)
+                {
+                    _hub.Clients.Group($"{MessageHub.User}{userIdToNotify}").SendAsync(MessageHub.ReceiveMessage, message);
+                }
+
 
                 return Ok(message);
             }
@@ -76,16 +79,10 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-
-                if (userIdClaim == null)
-                    return Unauthorized();
-
-                if (!long.TryParse(userIdClaim, out long userId))
-                    return Unauthorized();
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
                 // Appel DAL pour supprimer toutes les notifications non lues pour ce groupe
-                int deletedCount = _dal.ReadAllMessagesForUser(groupId, userId);
+                int deletedCount = _dal.ReadAllMessagesForUser(groupId, tokenUserId);
 
                 return Ok(deletedCount); // nombre de lignes supprimées
             }
@@ -101,16 +98,10 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-
-                if (userIdClaim == null)
-                    return Unauthorized();
-
-                if (!long.TryParse(userIdClaim, out long userId))
-                    return Unauthorized();
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
                 // Appel DAL pour récupérer le nombre total de notifications
-                int totalNotifications = _dal.GetTotalUnreadNotifications(userId);
+                int totalNotifications = _dal.GetTotalUnreadNotifications(tokenUserId);
 
                 return Ok(totalNotifications);
             }
@@ -129,11 +120,13 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+
                 var result = _dal.Update(messageId, input);
 
                 if (result)
                 {
-                    var message = _dal.GetById(messageId);
+                    var message = _dal.GetById(messageId, tokenUserId);
                     _hub.Clients.Group($"{MessageHub.Groupe}{groupId}").SendAsync(MessageHub.UpdateMessage, message);
                 }
                 

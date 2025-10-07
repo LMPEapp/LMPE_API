@@ -1,4 +1,5 @@
 ﻿using LMPE_API.DAL;
+using LMPE_API.Helpers;
 using LMPE_API.Hubs;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -29,11 +30,9 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                if (userIdClaim == null || !long.TryParse(userIdClaim, out var userId))
-                    return Unauthorized();
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
-                var agendas = _dal.GetAll(userId, startDate, endDate);
+                var agendas = _dal.GetAll(tokenUserId, startDate, endDate);
                 return Ok(agendas);
             }
             catch (ArgumentException ex)
@@ -69,11 +68,9 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                if (userIdClaim == null || !long.TryParse(userIdClaim, out var userId))
-                    return Unauthorized();
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
-                input.CreatedBy = userId;
+                input.CreatedBy = tokenUserId;
 
                 var id = _dal.Insert(input);
                 var agenda = _dal.GetById(id)!;
@@ -95,14 +92,7 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
-
-                if (userIdClaim == null || isAdminClaim == null)
-                    return Unauthorized("Token invalide");
-
-                long tokenUserId = long.Parse(userIdClaim);
-                bool isAdmin = bool.Parse(isAdminClaim);
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
                 var resulttmp = _dal.GetById(id);
 
@@ -133,11 +123,7 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
-
-                long tokenUserId = long.Parse(userIdClaim);
-                bool isAdmin = bool.Parse(isAdminClaim);
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
                 var resulttmp = _dal.GetById(id);
 

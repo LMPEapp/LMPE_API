@@ -1,4 +1,5 @@
 ﻿using LMPE_API.DAL;
+using LMPE_API.Helpers;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -77,9 +78,14 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 if (id == 1)
                 {
                     return Unauthorized("Pas le droit de modifier Admin");
+                }
+                if (tokenUserId != id && !isAdmin)
+                {
+                    return Unauthorized("Pas le droit de modifier");
                 }
                 var ok = _dal.Update(id, input);
                 return ok ? NoContent() : NotFound();
@@ -91,14 +97,20 @@ namespace LMPE_API.Controllers
         }
 
         // DELETE /user/{id}
+        [Authorize]
         [HttpDelete("{id:long}")]
         public IActionResult Delete(long id)
         {
             try
             {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 if (id == 1)
                 {
-                    return Unauthorized("Pas le droit de modifier Admin");
+                    return Unauthorized("Pas le droit de suprimé Admin");
+                }
+                if (tokenUserId != id && !isAdmin)
+                {
+                    return Unauthorized("Pas le droit de suprimé");
                 }
                 var ok = _dal.Delete(id);
                 return ok ? NoContent() : NotFound();

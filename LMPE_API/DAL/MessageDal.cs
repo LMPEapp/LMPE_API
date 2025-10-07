@@ -19,9 +19,12 @@ namespace LMPE_API.DAL
             UserEmail = record["Email"].ToString()!,
             UserPseudo = record["Pseudo"].ToString()!,
             UserUrlImage = record["UrlImage"] == DBNull.Value ? null : record["UrlImage"].ToString(),
-            UserIsAdmin = Convert.ToBoolean(record["IsAdmin"])
+            UserIsAdmin = Convert.ToBoolean(record["IsAdmin"]),
+
+            IsRead = Convert.ToInt32(record["IsRead"]) > 0  // <- ici
         };
     }
+
 
     public class MessageDal
     {
@@ -33,7 +36,7 @@ namespace LMPE_API.DAL
         }
 
         // -------------------- Messages par groupe --------------------
-        public IEnumerable<MessageOut> GetByGroupId(long groupId, int limit, long? lastMessageId = null)
+        public IEnumerable<MessageOut> GetByGroupId(long groupId, long userId, int limit, long? lastMessageId = null)
         {
             var list = new List<MessageOut>();
             using var conn = _db.GetConnection();
@@ -43,26 +46,33 @@ namespace LMPE_API.DAL
             if (lastMessageId == null)
             {
                 sql = @"
-            SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
-            FROM Message m
-            JOIN Users u ON u.Id = m.UserId
-            WHERE m.GroupeId=@GroupeId
-            ORDER BY m.Id DESC
-            LIMIT @Limit";
+                    SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
+                           (n.MessageId IS NOT NULL) AS IsRead
+                    FROM Message m
+                    JOIN Users u ON u.Id = m.UserId
+                    LEFT JOIN Notification_User_Message n 
+                        ON m.Id = n.MessageId AND n.UserId = @UserId
+                    WHERE m.GroupeId=@GroupeId
+                    ORDER BY m.Id DESC
+                    LIMIT @Limit";
             }
             else
             {
                 sql = @"
-            SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
-            FROM Message m
-            JOIN Users u ON u.Id = m.UserId
-            WHERE m.GroupeId=@GroupeId AND m.Id < @LastId
-            ORDER BY m.Id DESC
-            LIMIT @Limit";
+                    SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
+                           (n.MessageId IS NOT NULL) AS IsRead
+                    FROM Message m
+                    JOIN Users u ON u.Id = m.UserId
+                    LEFT JOIN Notification_User_Message n 
+                        ON m.Id = n.MessageId AND n.UserId = @UserId
+                    WHERE m.GroupeId=@GroupeId AND m.Id < @LastId
+                    ORDER BY m.Id DESC
+                    LIMIT @Limit";
             }
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@GroupeId", groupId);
+            cmd.Parameters.AddWithValue("@UserId", userId);
             cmd.Parameters.AddWithValue("@Limit", limit);
             if (lastMessageId != null)
                 cmd.Parameters.AddWithValue("@LastId", lastMessageId.Value);
@@ -76,19 +86,24 @@ namespace LMPE_API.DAL
             return list.OrderBy(m => m.Id);
         }
 
-        public MessageOut? GetById(long Id)
+
+        public MessageOut? GetById(long messageId, long userId)
         {
             using var conn = _db.GetConnection();
             conn.Open();
 
             string sql = @"
-        SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
-        FROM Message m
-        JOIN Users u ON u.Id = m.UserId
-        WHERE m.Id=@Id";
+                SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
+                       (n.MessageId IS NOT NULL) AS IsRead
+                FROM Message m
+                JOIN Users u ON u.Id = m.UserId
+                LEFT JOIN Notification_User_Message n 
+                    ON m.Id = n.MessageId AND n.UserId = @UserId
+                WHERE m.Id=@Id";
 
             using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Id", Id);
+            cmd.Parameters.AddWithValue("@Id", messageId);
+            cmd.Parameters.AddWithValue("@UserId", userId);
 
             using var reader = cmd.ExecuteReader();
             if (reader.Read())
@@ -98,6 +113,7 @@ namespace LMPE_API.DAL
 
             return null;
         }
+
 
 
 
@@ -176,6 +192,30 @@ namespace LMPE_API.DAL
                 throw;
             }
         }
+
+        public IEnumerable<long> GetUserIdsToNotify(long groupId)
+        {
+            var userIds = new List<long>();
+
+            using var conn = _db.GetConnection();
+            conn.Open();
+
+            using var cmd = new MySqlCommand(@"
+                SELECT ug.UserId
+                FROM User_Groupe ug
+                WHERE ug.GroupeId = @GroupeId;", conn);
+
+            cmd.Parameters.AddWithValue("@GroupeId", groupId);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                userIds.Add(reader.GetInt64(0));
+            }
+
+            return userIds;
+        }
+
 
 
         public int GetTotalUnreadNotifications(long userId)

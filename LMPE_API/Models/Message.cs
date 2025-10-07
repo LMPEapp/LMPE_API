@@ -16,6 +16,8 @@ namespace LMPE_API.Models
         public string UserPseudo { get; set; } = "";
         public string? UserUrlImage { get; set; }
         public bool UserIsAdmin { get; set; }
+
+        public bool IsRead { get; set; } = false;
     }
     public class MessageIn
     {

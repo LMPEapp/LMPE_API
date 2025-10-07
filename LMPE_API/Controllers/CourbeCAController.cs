@@ -1,4 +1,5 @@
 ﻿using LMPE_API.DAL;
+using LMPE_API.Helpers;
 using LMPE_API.Hubs;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -90,14 +91,7 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
-
-                if (userIdClaim == null || isAdminClaim == null)
-                    return Unauthorized("Token invalide");
-
-                long tokenUserId = long.Parse(userIdClaim);
-                bool isAdmin = bool.Parse(isAdminClaim);
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 var ca = _dal.GetById(id);
                 if (ca.UserId != tokenUserId && !isAdmin)
                 {

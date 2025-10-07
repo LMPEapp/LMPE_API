@@ -14,7 +14,8 @@ namespace LMPE_API.DAL
                 Id = Convert.ToInt64(record["Id"]),
                 Name = Convert.ToString(record["Name"])!,
                 LastActivity = Convert.ToDateTime(record["LastActivity"])!,
-                CreatedAt = Convert.ToDateTime(record["CreatedAt"])
+                CreatedAt = Convert.ToDateTime(record["CreatedAt"]),
+                UnReadCount = Convert.ToInt32(record["UnReadCount"])
             };
         }
     }
@@ -34,14 +35,20 @@ namespace LMPE_API.DAL
             using var conn = _db.GetConnection();
             conn.Open();
             using var cmd = new MySqlCommand(@"
-                SELECT g.*, 
-                COALESCE(MAX(m.CreatedAt), g.CreatedAt) AS LastActivity
+                SELECT 
+                    g.*,
+                    COALESCE(MAX(m.CreatedAt), g.CreatedAt) AS LastActivity,
+                    (SELECT COUNT(*) 
+                     FROM Notification_User_Message n 
+                     JOIN Message m2 ON n.MessageId = m2.Id
+                     WHERE n.UserId = @UserId AND m2.GroupeId = g.Id
+                    ) AS UnreadCount
                 FROM GroupeConversation g
                 INNER JOIN User_Groupe ug ON g.Id = ug.GroupeId
                 LEFT JOIN Message m ON g.Id = m.GroupeId
                 WHERE ug.UserId = @UserId
                 GROUP BY g.Id
-                ORDER BY LastActivity DESC", conn);
+                ORDER BY LastActivity DESC;", conn);
             cmd.Parameters.AddWithValue("@UserId", userId);
             using var reader = cmd.ExecuteReader();
             while (reader.Read()) list.Add(GroupeConversationMapper.Map(reader));
@@ -49,15 +56,32 @@ namespace LMPE_API.DAL
         }
 
 
-        public GroupeConversation? GetById(long id)
+        public GroupeConversation? GetById(long id, long userId)
         {
             using var conn = _db.GetConnection();
             conn.Open();
-            using var cmd = new MySqlCommand("SELECT *, CreatedAt AS LastActivity FROM GroupeConversation WHERE Id=@Id", conn);
+            using var cmd = new MySqlCommand(@"
+                SELECT 
+                    g.*,
+                    COALESCE(MAX(m.CreatedAt), g.CreatedAt) AS LastActivity,
+                    (SELECT COUNT(*) 
+                     FROM Notification_User_Message n 
+                     JOIN Message m2 ON n.MessageId = m2.Id
+                     WHERE n.UserId = @UserId AND m2.GroupeId = g.Id
+                    ) AS UnreadCount
+                FROM GroupeConversation g
+                INNER JOIN User_Groupe ug ON g.Id = ug.GroupeId
+                LEFT JOIN Message m ON g.Id = m.GroupeId
+                WHERE g.Id = @Id
+                GROUP BY g.Id;", conn);
+
             cmd.Parameters.AddWithValue("@Id", id);
+            cmd.Parameters.AddWithValue("@UserId", userId);
+
             using var reader = cmd.ExecuteReader();
             return reader.Read() ? GroupeConversationMapper.Map(reader) : null;
         }
+
 
         public long Insert(GroupeConversationIn g)
         {

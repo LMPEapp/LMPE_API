@@ -1,5 +1,6 @@
 ﻿using BCrypt.Net;
 using LMPE_API.DAL;
+using LMPE_API.Helpers;
 using LMPE_API.Models;
 using LMPE_API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -52,24 +53,13 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
-
-                if (userIdClaim == null || isAdminClaim == null)
-                    return Unauthorized();
-
-                // Conversion
-                if (!long.TryParse(userIdClaim, out long userId))
-                    return Unauthorized();
-
-                if (!bool.TryParse(isAdminClaim, out bool isAdmin))
-                    return Unauthorized();
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
                 // Génère un nouveau token
-                var token = _jwtService.GenerateToken(userId, isAdmin);
+                var token = _jwtService.GenerateToken(tokenUserId, isAdmin);
 
                 // Récupère l’utilisateur
-                var user = _dal.GetById(userId);
+                var user = _dal.GetById(tokenUserId);
 
                 return Ok(new LoginRequestOut { Token = token, User = user });
             }
@@ -88,15 +78,7 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                // Récupérer l'ID et isAdmin depuis le token JWT
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
-
-                if (userIdClaim == null || isAdminClaim == null)
-                    return Unauthorized("Token invalide");
-
-                long tokenUserId = long.Parse(userIdClaim);
-                bool isAdmin = bool.Parse(isAdminClaim);
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
                 if (input.UserId == 1)
                 {

@@ -1,4 +1,5 @@
 ﻿using LMPE_API.DAL;
+using LMPE_API.Helpers;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,15 +25,8 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                // Récupérer l'ID et isAdmin depuis le token JWT
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
-                if (userIdClaim == null || isAdminClaim == null)
-                    return Unauthorized("Token invalide");
-
-                long tokenUserId = long.Parse(userIdClaim);
-                bool isAdmin = bool.Parse(isAdminClaim);
                 var groupes = _dal.GetAll(tokenUserId);
                 return Ok(groupes);
             }
@@ -50,18 +44,11 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
-                var isAdminClaim = User.Claims.FirstOrDefault(c => c.Type == "isAdmin")?.Value;
-
-                if (userIdClaim == null || isAdminClaim == null)
-                    return Unauthorized("Token invalide");
-
-                long tokenUserId = long.Parse(userIdClaim);
-                bool isAdmin = bool.Parse(isAdminClaim);
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
 
                 var id = _dal.Insert(input);
                 _dal.AddUsers(id, [tokenUserId]);
-                var g = _dal.GetById(id)!;
+                var g = _dal.GetById(id, tokenUserId)!;
                 return CreatedAtAction(nameof(GetById), new { id = g.Id }, g);
             }
             catch (Exception ex)
@@ -77,7 +64,9 @@ namespace LMPE_API.Controllers
         {
             try
             {
-                var g = _dal.GetById(id);
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+
+                var g = _dal.GetById(id, tokenUserId);
                 if (g == null) return NotFound();
                 return Ok(g);
             }

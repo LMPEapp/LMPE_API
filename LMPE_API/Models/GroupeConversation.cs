@@ -6,6 +6,8 @@
         public string Name { get; set; } = "";
         public DateTime LastActivity { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public int UnReadCount { get; set; } = 0;
     }
 
     public class GroupeConversationIn

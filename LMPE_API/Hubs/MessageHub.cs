@@ -12,6 +12,7 @@ namespace LMPE_API.Hubs
         public static string DeleteMessage = "DeleteMessage";
 
         public static string Groupe = "group_";
+        public static string User = "user_";
         // Rejoindre un groupe SignalR côté client
         public async Task JoinGroup(long groupId)
         {
@@ -22,6 +23,17 @@ namespace LMPE_API.Hubs
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{MessageHub.Groupe}{groupId}");
         }
+
+        public async Task JoinMessageUser(long UserId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"{MessageHub.User}{UserId}");
+        }
+
+        public async Task LeaveMessageUser(long UserId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"{MessageHub.User}{UserId}");
+        }
+
         // Typing indicator
         public async Task Typing(long groupId, User user)
         {
