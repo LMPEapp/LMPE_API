@@ -19,32 +19,6 @@ CREATE TABLE Notification_User_Message (
 CREATE INDEX idx_Notification_User_Message ON Notification_User_Message(UserId);
 
 -- -----------------------------------------------------
--- Table des événements Agenda non vus
--- -----------------------------------------------------
-CREATE TABLE Notification_User_Agenda (
-    UserId BIGINT UNSIGNED NOT NULL,
-    AgendaId BIGINT UNSIGNED NOT NULL,
-    PRIMARY KEY (UserId, AgendaId),
-    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-    FOREIGN KEY (AgendaId) REFERENCES Agenda(Id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_Notification_User_Agenda ON Notification_User_Agenda(UserId);
-
--- -----------------------------------------------------
--- Table des CourbeCA non vus (par exemple nouvelles lignes ajoutées)
--- -----------------------------------------------------
-CREATE TABLE Notification_User_CourbeCA (
-    UserId BIGINT UNSIGNED NOT NULL,
-    CourbeCAId BIGINT UNSIGNED NOT NULL,
-    PRIMARY KEY (UserId, CourbeCAId),
-    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-    FOREIGN KEY (CourbeCAId) REFERENCES CourbeCA(Id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_Notification_User_CourbeCA ON Notification_User_CourbeCA(UserId);
-
--- -----------------------------------------------------
 -- Table des Bulletins non vus
 -- -----------------------------------------------------
 CREATE TABLE Notification_User_Bulletin (

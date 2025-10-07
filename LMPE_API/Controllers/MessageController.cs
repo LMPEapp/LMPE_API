@@ -70,6 +70,58 @@ namespace LMPE_API.Controllers
             }
         }
 
+        [Authorize]
+        [HttpGet("groupe/{groupId:long}/readAll")]
+        public ActionResult<int> ReadAll(long groupId)
+        {
+            try
+            {
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+
+                if (userIdClaim == null)
+                    return Unauthorized();
+
+                if (!long.TryParse(userIdClaim, out long userId))
+                    return Unauthorized();
+
+                // Appel DAL pour supprimer toutes les notifications non lues pour ce groupe
+                int deletedCount = _dal.ReadAllMessagesForUser(groupId, userId);
+
+                return Ok(deletedCount); // nombre de lignes supprimées
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpGet("Notification")]
+        public ActionResult<int> GetNotificationCount()
+        {
+            try
+            {
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+
+                if (userIdClaim == null)
+                    return Unauthorized();
+
+                if (!long.TryParse(userIdClaim, out long userId))
+                    return Unauthorized();
+
+                // Appel DAL pour récupérer le nombre total de notifications
+                int totalNotifications = _dal.GetTotalUnreadNotifications(userId);
+
+                return Ok(totalNotifications);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
+        }
+
+
+
         // PUT /message/{messageId}
         [Authorize]
         [HttpPut("groupe/{groupId:long}/{messageId:long}")]

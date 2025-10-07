@@ -105,16 +105,99 @@ namespace LMPE_API.DAL
         {
             using var conn = _db.GetConnection();
             conn.Open();
-            using var cmd = new MySqlCommand(@"
-                INSERT INTO Message (GroupeId, UserId, Type, Content)
-                VALUES (@GroupeId, @UserId, @Type, @Content);
-                SELECT LAST_INSERT_ID();", conn);
-            cmd.Parameters.AddWithValue("@GroupeId", groupId);
-            cmd.Parameters.AddWithValue("@UserId", m.UserId);
-            cmd.Parameters.AddWithValue("@Type", m.Type);
-            cmd.Parameters.AddWithValue("@Content", m.Content);
-            return Convert.ToInt64(cmd.ExecuteScalar());
+            using var tran = conn.BeginTransaction();
+
+            try
+            {
+                // 1️ Insertion du message
+                using var cmd = new MySqlCommand(@"
+                    INSERT INTO Message (GroupeId, UserId, Type, Content)
+                    VALUES (@GroupeId, @UserId, @Type, @Content);
+                    SELECT LAST_INSERT_ID();", conn, tran);
+
+                cmd.Parameters.AddWithValue("@GroupeId", groupId);
+                cmd.Parameters.AddWithValue("@UserId", m.UserId);
+                cmd.Parameters.AddWithValue("@Type", m.Type);
+                cmd.Parameters.AddWithValue("@Content", m.Content);
+
+                var messageId = Convert.ToInt64(cmd.ExecuteScalar());
+
+                // 2️ Création des notifications pour tous les autres membres du groupe
+                using var notifCmd = new MySqlCommand(@"
+                    INSERT INTO Notification_User_Message (UserId, MessageId)
+                    SELECT ug.UserId, @MessageId
+                    FROM User_Groupe ug
+                    WHERE ug.GroupeId = @GroupeId
+                        AND ug.UserId <> @AuthorId;", conn, tran);
+
+                notifCmd.Parameters.AddWithValue("@MessageId", messageId);
+                notifCmd.Parameters.AddWithValue("@GroupeId", groupId);
+                notifCmd.Parameters.AddWithValue("@AuthorId", m.UserId);
+
+                notifCmd.ExecuteNonQuery();
+
+                tran.Commit();
+                return messageId;
+            }
+            catch
+            {
+                tran.Rollback();
+                throw;
+            }
         }
+        public int ReadAllMessagesForUser(long groupId, long userId)
+        {
+            using var conn = _db.GetConnection();
+            conn.Open();
+
+            using var tran = conn.BeginTransaction();
+
+            try
+            {
+                // Suppression de toutes les notifications non lues pour ce groupe et cet utilisateur
+                using var cmd = new MySqlCommand(@"
+                    DELETE NUM
+                    FROM Notification_User_Message NUM
+                    INNER JOIN Message M ON NUM.MessageId = M.Id
+                    WHERE NUM.UserId = @UserId
+                        AND M.GroupeId = @GroupeId;", conn, tran);
+
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@GroupeId", groupId);
+
+                int rowsDeleted = cmd.ExecuteNonQuery();
+
+                tran.Commit();
+                return rowsDeleted;
+            }
+            catch
+            {
+                tran.Rollback();
+                throw;
+            }
+        }
+
+
+        public int GetTotalUnreadNotifications(long userId)
+        {
+            using var conn = _db.GetConnection();
+            conn.Open();
+
+            var sql = @"
+                SELECT COUNT(*) AS TotalCount 
+                FROM Notification_User_Message 
+                WHERE UserId = @UserId;";
+
+            using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@UserId", userId);
+
+            var result = cmd.ExecuteScalar();
+            return Convert.ToInt32(result);
+        }
+
+
+
+
 
         public bool Update(long messageId, MessageIn m)
         {
