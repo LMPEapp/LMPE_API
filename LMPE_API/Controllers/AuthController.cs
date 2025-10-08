@@ -30,9 +30,10 @@ namespace LMPE_API.Controllers
             try
             {
                 var user = _dal.GetByEmail(input.Email);
+                var PasswordHash = _dal.GetPasswordByEmail(input.Email);
                 if (!(input.Email == "admin" && input.Password == "admin"))
                 {
-                    if (user == null || !BCrypt.Net.BCrypt.Verify(input.Password, user.PasswordHash))
+                    if (user == null || !BCrypt.Net.BCrypt.Verify(input.Password, PasswordHash))
                         return Unauthorized("Email ou mot de passe invalide");
                 }
 
@@ -82,15 +83,17 @@ namespace LMPE_API.Controllers
 
                 if (input.UserId == 1)
                 {
-                    return Unauthorized("Pas le droit de modifier Admin");
+                    return Forbid("Pas le droit de modifier Admin");
                 }
 
                 User? user = null;
+                string? PasswordHash = null;
 
                 if (isAdmin && input.UserId.HasValue)
                 {
                     // Admin peut changer le mot de passe de n'importe quel utilisateur
                     user = _dal.GetById(input.UserId.Value);
+                    PasswordHash = _dal.GetPasswordById(input.UserId.Value);
                     if (user == null)
                         return NotFound("Utilisateur introuvable");
                 }
@@ -98,13 +101,14 @@ namespace LMPE_API.Controllers
                 {
                     // Utilisateur normal doit changer son propre mot de passe
                     user = _dal.GetById(tokenUserId);
-                    if (user == null || string.IsNullOrEmpty(input.OldPassword) || !BCrypt.Net.BCrypt.Verify(input.OldPassword, user.PasswordHash))
-                        return Unauthorized("Ancien mot de passe incorrect ou non autorisé");
+                    PasswordHash = _dal.GetPasswordById(tokenUserId);
+                    if (user == null || string.IsNullOrEmpty(input.OldPassword) || !BCrypt.Net.BCrypt.Verify(input.OldPassword, PasswordHash))
+                        return Forbid("Ancien mot de passe incorrect ou non autorisé");
                 }
 
                 // Hash et update
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.NewPassword);
-                var ok = _dal.UpdatePawword(user.Id, user.PasswordHash);
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.NewPassword);
+                var ok = _dal.UpdatePawword(user.Id, PasswordHash);
                 return ok ? NoContent() : NotFound();
             }
             catch (Exception ex)

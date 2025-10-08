@@ -81,11 +81,11 @@ namespace LMPE_API.Controllers
                 var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 if (id == 1)
                 {
-                    return Unauthorized("Pas le droit de modifier Admin");
+                    return Forbid("Pas le droit de modifier Admin");
                 }
                 if (tokenUserId != id && !isAdmin)
                 {
-                    return Unauthorized("Pas le droit de modifier");
+                    return Forbid("Pas le droit de modifier");
                 }
                 var ok = _dal.Update(id, input);
                 return ok ? NoContent() : NotFound();
@@ -106,11 +106,11 @@ namespace LMPE_API.Controllers
                 var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 if (id == 1)
                 {
-                    return Unauthorized("Pas le droit de suprimé Admin");
+                    return Forbid("Pas le droit de suprimé Admin");
                 }
                 if (tokenUserId != id && !isAdmin)
                 {
-                    return Unauthorized("Pas le droit de suprimé");
+                    return Forbid("Pas le droit de suprimé");
                 }
                 var ok = _dal.Delete(id);
                 return ok ? NoContent() : NotFound();

@@ -1,5 +1,6 @@
 ﻿using LMPE_API.Data;
 using LMPE_API.Models;
+using Microsoft.AspNetCore.Identity;
 using MySqlConnector;
 using System.Data;
 
@@ -14,7 +15,6 @@ namespace LMPE_API.DAL
                 Id = Convert.ToInt64(record["Id"]),
                 Email = Convert.ToString(record["Email"])!,
                 Pseudo = Convert.ToString(record["Pseudo"])!,
-                PasswordHash = Convert.ToString(record["PasswordHash"])!,
                 UrlImage = record["UrlImage"] as string,
                 IsAdmin = Convert.ToBoolean(record["IsAdmin"]),
                 CreatedAt = Convert.ToDateTime(record["CreatedAt"])
@@ -53,6 +53,20 @@ namespace LMPE_API.DAL
             using var reader = cmd.ExecuteReader();
             return reader.Read() ? UserMapper.Map(reader) : null;
         }
+        public string? GetPasswordByEmail(string Email)
+        {
+            using var conn = _db.GetConnection();
+            conn.Open();
+            using var cmd = new MySqlCommand("SELECT PasswordHash FROM Users WHERE Email=@Email", conn);
+            cmd.Parameters.AddWithValue("@Email", Email);
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return reader["PasswordHash"]?.ToString();
+            }
+
+            return null;
+        }
         public User? GetById(long id)
         {
             using var conn = _db.GetConnection();
@@ -61,6 +75,20 @@ namespace LMPE_API.DAL
             cmd.Parameters.AddWithValue("@Id", id);
             using var reader = cmd.ExecuteReader();
             return reader.Read() ? UserMapper.Map(reader) : null;
+        }
+        public string? GetPasswordById(long id)
+        {
+            using var conn = _db.GetConnection();
+            conn.Open();
+            using var cmd = new MySqlCommand("SELECT PasswordHash FROM Users WHERE Id=@Id", conn);
+            cmd.Parameters.AddWithValue("@Id", id);
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return reader["PasswordHash"]?.ToString();
+            }
+
+            return null;
         }
 
         public long Insert(UserIn u)
