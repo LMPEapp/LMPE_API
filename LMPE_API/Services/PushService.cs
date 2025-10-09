@@ -63,9 +63,19 @@ namespace LMPE_API.Services
                         )
                     );
                 }
-                catch (Exception ex)
+                catch (WebPushException ex)
                 {
-                    Console.WriteLine($"Erreur envoi push à l'utilisateur {userId}: {ex.Message}");
+                    // Si l'abonnement n'est plus valide, on le supprime
+                    if (ex.StatusCode == System.Net.HttpStatusCode.Gone ||
+                        ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        Console.WriteLine($"Abonnement expiré pour l'utilisateur {userId}, suppression en base");
+                        _dal.Delete(sub.Id);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Erreur push pour {userId}: {ex.Message}");
+                    }
                 }
             }
         }
