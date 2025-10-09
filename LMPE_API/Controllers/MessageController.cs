@@ -69,7 +69,10 @@ namespace LMPE_API.Controllers
                     {
                         try
                         {
-                            _pushService.SendToUser(userIdToNotify, $"💬 Nouveau message dans le groupe {groupId}");
+                            _pushService.SendToUser(userIdToNotify,
+                                "Nouveau message",
+                                $"💬 Nouveau message dans le groupe {groupId} : {message.Content}");
+
                         }
                         catch (Exception ex)
                         {

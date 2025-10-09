@@ -12,12 +12,6 @@
 
     public class PushSubscriptionDto
     {
-        public long UserId { get; set; }
-        public PushKeys Subscription { get; set; } = new PushKeys();
-    }
-
-    public class PushKeys
-    {
         public string Endpoint { get; set; } = string.Empty;
         public Keys Keys { get; set; } = new Keys();
     }
@@ -27,4 +21,5 @@
         public string P256dh { get; set; } = string.Empty;
         public string Auth { get; set; } = string.Empty;
     }
+
 }

@@ -1,4 +1,5 @@
 ﻿using LMPE_API.DAL;
+using LMPE_API.Helpers;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,12 +24,14 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+
                 var sub = new PushSubscription
                 {
-                    UserId = dto.UserId,
-                    Endpoint = dto.Subscription.Endpoint,
-                    P256dh = dto.Subscription.Keys.P256dh,
-                    Auth = dto.Subscription.Keys.Auth
+                    UserId = tokenUserId,
+                    Endpoint = dto.Endpoint,
+                    P256dh = dto.Keys.P256dh,
+                    Auth = dto.Keys.Auth
                 };
 
                 _dal.Insert(sub);

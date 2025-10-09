@@ -1,21 +1,22 @@
 ﻿using LMPE_API.DAL;
 using LMPE_API.Models;
 using WebPush;
+using System.Text.Json;
 
 namespace LMPE_API.Services
 {
     public class PushService
     {
         private readonly PushDal _dal;
-        private readonly string _vapidPublic = "BH3IbEl1dPjulBkExkqNjA4QpojoTr2H5XSBvB4KNAKtIjd1_TKIroxO7lFcmDTbmSoZrN-BXNSX0pzY-OOaeg8";
-        private readonly string _vapidPrivate = "eiEy-Y_hMssukaIgByHvZpMuLnVbjgDjRlBGPDSftio";
+        private readonly string _vapidPublic = "BJieS9rJZ5dcmEVMOzyjjz4hh-nkIntZ7Zpx61DpirktTSjK9aHfUjw1lNuzFWCPjD-5cR1xj_unleYj3Ru7ySc";
+        private readonly string _vapidPrivate = "hKKheGs0lu7pEr1xCFrteLk6EQZUptljHBtWNR_wh6M";
 
         public PushService(PushDal dal)
         {
             _dal = dal;
         }
 
-        public void SendToUser(long userId, string message)
+        public void SendToUser(long userId, string title, string body)
         {
             var subscriptions = _dal.GetByUserId(userId);
             var webPush = new WebPushClient();
@@ -29,11 +30,43 @@ namespace LMPE_API.Services
                     Auth = sub.Auth
                 };
 
-                webPush.SendNotification(pushSub, message, new VapidDetails(
-                    "mailto:maxence.coeur@outlook.fr",
-                    _vapidPublic,
-                    _vapidPrivate
-                ));
+                // Payload similaire à l'exemple Node.js
+                var payload = new
+                {
+                    notification = new
+                    {
+                        title = title,
+                        body = body,
+                        icon = "/assets/main-page-logo-small-hat.png",
+                        vibrate = new[] { 100, 50, 100 },
+                        data = new
+                        {
+                            dateOfArrival = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                            primaryKey = 1
+                        },
+                        actions = new[]
+                        {
+                            new { action = "explore", title = "Go to the site" }
+                        }
+                    }
+                };
+
+                try
+                {
+                    webPush.SendNotification(
+                        pushSub,
+                        JsonSerializer.Serialize(payload),
+                        new VapidDetails(
+                            "mailto:maxence.coeur@outlook.fr",
+                            _vapidPublic,
+                            _vapidPrivate
+                        )
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur envoi push à l'utilisateur {userId}: {ex.Message}");
+                }
             }
         }
     }
