@@ -34,9 +34,14 @@ namespace LMPE_API.DAL
         {
             using var conn = _db.GetConnection();
             conn.Open();
+
             using var cmd = new MySqlCommand(@"
                 INSERT INTO PushSubscription (UserId, Endpoint, P256dh, Auth)
-                VALUES (@UserId, @Endpoint, @P256dh, @Auth);
+                VALUES (@UserId, @Endpoint, @P256dh, @Auth)
+                ON DUPLICATE KEY UPDATE
+                    P256dh = VALUES(P256dh),
+                    Auth = VALUES(Auth),
+                    CreatedAt = NOW();
                 SELECT LAST_INSERT_ID();", conn);
 
             cmd.Parameters.AddWithValue("@UserId", sub.UserId);
@@ -44,8 +49,22 @@ namespace LMPE_API.DAL
             cmd.Parameters.AddWithValue("@P256dh", sub.P256dh);
             cmd.Parameters.AddWithValue("@Auth", sub.Auth);
 
-            return Convert.ToInt64(cmd.ExecuteScalar());
+            try
+            {
+                return Convert.ToInt64(cmd.ExecuteScalar());
+            }
+            catch (MySqlException ex)
+            {
+                // Si erreur de doublon, on ignore
+                if (ex.Number == 1062) // 1062 = Duplicate entry
+                {
+                    Console.WriteLine($"[INFO] Endpoint déjà enregistré pour l’utilisateur {sub.UserId}");
+                    return 0; // ou -1 si tu veux marquer qu’il n’y a pas eu insertion
+                }
+                throw; // pour toute autre erreur, on relance
+            }
         }
+
 
         public IEnumerable<PushSubscription> GetByUserId(long userId)
         {
