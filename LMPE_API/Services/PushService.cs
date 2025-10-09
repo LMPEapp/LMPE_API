@@ -23,6 +23,13 @@ namespace LMPE_API.Services
 
             foreach (var sub in subscriptions)
             {
+                if (string.IsNullOrWhiteSpace(sub.Endpoint))
+                {
+                    Console.WriteLine($"Abonnement invalide pour l'utilisateur {userId}, suppression en base");
+                    _dal.Delete(sub.Id);
+                    continue;
+                }
+
                 var pushSub = new WebPush.PushSubscription
                 {
                     Endpoint = sub.Endpoint,
