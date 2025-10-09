@@ -2,6 +2,7 @@
 using LMPE_API.Helpers;
 using LMPE_API.Hubs;
 using LMPE_API.Models;
+using LMPE_API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -15,11 +16,13 @@ namespace LMPE_API.Controllers
     {
         private readonly MessageDal _dal;
         private readonly IHubContext<MessageHub> _hub;
+        private readonly PushService _pushService;
 
-        public MessageController(MessageDal dal, IHubContext<MessageHub> hub)
+        public MessageController(MessageDal dal, IHubContext<MessageHub> hub, PushService pushService)
         {
             _dal = dal;
             _hub = hub;
+            _pushService = pushService;
         }
 
 
@@ -62,6 +65,17 @@ namespace LMPE_API.Controllers
                 foreach (var userIdToNotify in userIdsToNotify)
                 {
                     _hub.Clients.Group($"{MessageHub.User}{userIdToNotify}").SendAsync(MessageHub.ReceiveMessage, message);
+                    if (userIdToNotify != tokenUserId)
+                    {
+                        try
+                        {
+                            _pushService.SendToUser(userIdToNotify, $"💬 Nouveau message dans le groupe {groupId}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Erreur envoi push à l'utilisateur {userIdToNotify}: {ex.Message}");
+                        }
+                    }
                 }
 
 
