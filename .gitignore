@@ -7,6 +7,7 @@
 .env
 # bdd files
 LMPE_API/db_data/*
+LMPE_API/uploads/*
 
 # appsettings.json
 LMPE_API/appsettings.json

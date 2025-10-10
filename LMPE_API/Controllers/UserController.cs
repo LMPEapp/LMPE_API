@@ -3,6 +3,7 @@ using LMPE_API.Helpers;
 using LMPE_API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.AccessControl;
 
 namespace LMPE_API.Controllers
 {
@@ -11,10 +12,12 @@ namespace LMPE_API.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserDal _dal;
+        private readonly FileStorageDal _dalFile;
 
-        public UserController(UserDal dal)
+        public UserController(UserDal dal, FileStorageDal dalFile)
         {
             _dal = dal;
+            _dalFile = dalFile;
         }
 
         // GET /user
@@ -113,7 +116,50 @@ namespace LMPE_API.Controllers
                     return Forbid("Pas le droit de suprimé");
                 }
                 var ok = _dal.Delete(id);
+
+                _dalFile.DeleteFile("users", id);
+
                 return ok ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpPost("{id:long}/upload")]
+        public IActionResult Upload(long id, [FromForm] IFormFile file)
+        {
+            try
+            {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+                if (id != tokenUserId && !isAdmin)
+                    return Forbid("Pas le droit de modifier cette image");
+
+                if (file == null || file.Length == 0)
+                    return BadRequest("Aucun fichier envoyé");
+
+                // Sauvegarde via DAL
+                var fileName = _dalFile.SaveFile(file, "users", id);
+                var url = _dalFile.GetFileUrl("users", fileName, Request);
+
+                var user = _dal.GetById(id);
+                if (user == null) return NotFound();
+
+                var userIn = new UserIn
+                {
+                    Email = user.Email,
+                    Pseudo = user.Pseudo,
+                    PasswordHash = "",
+                    IsAdmin = user.IsAdmin,
+                    UrlImage = url
+                };
+                var ok = _dal.Update(id, userIn);
+
+                // Génère l'URL publique
+            
+                return Ok(new { url });
             }
             catch (Exception ex)
             {

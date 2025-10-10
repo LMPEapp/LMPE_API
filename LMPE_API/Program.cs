@@ -3,6 +3,7 @@ using LMPE_API.Data;
 using LMPE_API.Hubs;
 using LMPE_API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -20,11 +21,10 @@ builder.Services.AddScoped<MessageDal>();
 builder.Services.AddScoped<AgendaDal>();
 builder.Services.AddScoped<CourbeCADal>();
 builder.Services.AddScoped<PushDal>();
+builder.Services.AddScoped<FileStorageDal>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PushService>();
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 
 // JWT Authentication
@@ -43,9 +43,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+if (!Directory.Exists(uploadsPath))
+    Directory.CreateDirectory(uploadsPath);
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Activer fichiers statiques
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "uploads")),
+    RequestPath = "/uploads"
+});
 
 app.UseCors(policy => policy
     .AllowAnyHeader()
@@ -55,36 +67,8 @@ app.UseCors(policy => policy
 
 app.MapControllers();
 
-app.MapHub<MessageHub>("/messageHub"); // route du hub
-app.MapHub<AgendaHub>("/agendaHub"); // route du hub
-app.MapHub<CourbecaHub>("/courbecaHub"); // route du hub
+app.MapHub<MessageHub>("/messageHub");
+app.MapHub<AgendaHub>("/agendaHub");
+app.MapHub<CourbecaHub>("/courbecaHub");
 
-// Swagger uniquement en dev
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-
-    app.Start();
-
-    if (app.Urls.Any())
-    {
-        var url = app.Urls.First();
-        var swaggerUrl = url + "/swagger";
-        try
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = swaggerUrl,
-                UseShellExecute = true
-            });
-        }
-        catch { }
-    }
-
-    app.WaitForShutdown();
-}
-else
-{
-    app.Run();
-}
+app.Run();

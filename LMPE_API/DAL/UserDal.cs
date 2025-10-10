@@ -113,19 +113,25 @@ namespace LMPE_API.DAL
         {
             using var conn = _db.GetConnection();
             conn.Open();
-            using var cmd = new MySqlCommand(@"
-            UPDATE Users
-            SET Email=@Email, Pseudo=@Pseudo, UrlImage=@UrlImage, IsAdmin=@IsAdmin
-            WHERE Id=@Id", conn);
+
+            string sql = "UPDATE Users SET Email=@Email, Pseudo=@Pseudo, IsAdmin=@IsAdmin";
+            if (u.UrlImage != null)
+                sql += ", UrlImage=@UrlImage";
+            sql += " WHERE Id=@Id";
+
+            using var cmd = new MySqlCommand(sql, conn);
 
             cmd.Parameters.AddWithValue("@Id", id);
             cmd.Parameters.AddWithValue("@Email", u.Email);
             cmd.Parameters.AddWithValue("@Pseudo", u.Pseudo);
-            cmd.Parameters.AddWithValue("@UrlImage", u.UrlImage ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@IsAdmin", u.IsAdmin);
+
+            if (u.UrlImage != null)
+                cmd.Parameters.AddWithValue("@UrlImage", u.UrlImage);
 
             return cmd.ExecuteNonQuery() > 0;
         }
+
 
         public bool UpdatePawword(long id, string PasswordHash)
         {
