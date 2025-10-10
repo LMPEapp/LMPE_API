@@ -14,6 +14,8 @@ namespace LMPE_API.Controllers
         private readonly UserDal _dal;
         private readonly FileStorageDal _dalFile;
 
+        private readonly string resource = "users";
+
         public UserController(UserDal dal, FileStorageDal dalFile)
         {
             _dal = dal;
@@ -117,7 +119,7 @@ namespace LMPE_API.Controllers
                 }
                 var ok = _dal.Delete(id);
 
-                _dalFile.DeleteFile("users", id);
+                _dalFile.DeleteFile(resource, id);
 
                 return ok ? NoContent() : NotFound();
             }
@@ -141,8 +143,7 @@ namespace LMPE_API.Controllers
                     return BadRequest("Aucun fichier envoyé");
 
                 // Sauvegarde via DAL
-                var fileName = _dalFile.SaveFile(file, "users", id);
-                var url = _dalFile.GetFileUrl("users", fileName, Request);
+                var url = _dalFile.SaveFile(file, resource, id);
 
                 var user = _dal.GetById(id);
                 if (user == null) return NotFound();

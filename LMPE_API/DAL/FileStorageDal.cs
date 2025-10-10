@@ -27,12 +27,7 @@
                 file.CopyTo(stream);
             }
 
-            return fileName;
-        }
-
-        public string GetFileUrl(string resourceType, string fileName, HttpRequest request)
-        {
-            return $"{request.Scheme}://{request.Host}/uploads/{resourceType}/{fileName}";
+            return $"uploads/{resourceType}/{fileName}";
         }
 
         public bool DeleteFile(string resourceType, long resourceId)
