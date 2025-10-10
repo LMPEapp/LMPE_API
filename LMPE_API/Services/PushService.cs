@@ -52,10 +52,6 @@ namespace LMPE_API.Services
                         {
                             dateOfArrival = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                             primaryKey = 1
-                        },
-                        actions = new[]
-                        {
-                            new { action = "explore", title = "Go to the site" }
                         }
                     }
                 };
