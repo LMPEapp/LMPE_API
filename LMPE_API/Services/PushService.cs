@@ -44,7 +44,7 @@ namespace LMPE_API.Services
                     {
                         title = title,
                         body = body,
-                        icon = "/assets/main-page-logo-small-hat.png",
+                        icon = "/assets/logo.png",
                         vibrate = new[] { 100, 50, 100 },
                         data = new
                         {
