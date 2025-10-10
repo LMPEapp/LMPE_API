@@ -46,6 +46,8 @@ namespace LMPE_API.Services
                         body = body,
                         icon = "/assets/logo.png",
                         vibrate = new[] { 100, 50, 100 },
+                        tag = "messages",
+                        renotify = true,
                         data = new
                         {
                             dateOfArrival = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
