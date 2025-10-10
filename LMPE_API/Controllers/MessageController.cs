@@ -70,8 +70,8 @@ namespace LMPE_API.Controllers
                         try
                         {
                             _pushService.SendToUser(userIdToNotify,
-                                "Nouveau message",
-                                $"💬 Nouveau message de {message.UserPseudo} : {message.Content}");
+                                $"Nouveau message {message.UserPseudo}",
+                                $"{message.Content}");
 
                         }
                         catch (Exception ex)
