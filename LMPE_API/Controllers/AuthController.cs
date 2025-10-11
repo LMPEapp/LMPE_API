@@ -83,7 +83,7 @@ namespace LMPE_API.Controllers
 
                 if (input.UserId == 1)
                 {
-                    return Forbid("Pas le droit de modifier Admin");
+                    return StatusCode(403,"Pas le droit de modifier Admin");
                 }
 
                 User? user = null;
@@ -103,7 +103,7 @@ namespace LMPE_API.Controllers
                     user = _dal.GetById(tokenUserId);
                     PasswordHash = _dal.GetPasswordById(tokenUserId);
                     if (user == null || string.IsNullOrEmpty(input.OldPassword) || !BCrypt.Net.BCrypt.Verify(input.OldPassword, PasswordHash))
-                        return Forbid("Ancien mot de passe incorrect ou non autorisé");
+                        return StatusCode(403,"Ancien mot de passe incorrect ou non autorisé");
                 }
 
                 // Hash et update

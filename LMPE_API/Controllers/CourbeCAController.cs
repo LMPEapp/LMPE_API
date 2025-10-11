@@ -95,7 +95,7 @@ namespace LMPE_API.Controllers
                 var ca = _dal.GetById(id);
                 if (ca.UserId != tokenUserId && !isAdmin)
                 {
-                    return Forbid("Token invalide");
+                    return StatusCode(403,"Token invalide");
                 }
 
                 var result = _dal.Delete(id);

@@ -86,11 +86,11 @@ namespace LMPE_API.Controllers
                 var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 if (id == 1)
                 {
-                    return Forbid("Pas le droit de modifier Admin");
+                    return StatusCode(403,"Pas le droit de modifier Admin");
                 }
                 if (tokenUserId != id && !isAdmin)
                 {
-                    return Forbid("Pas le droit de modifier");
+                    return StatusCode(403,"Pas le droit de modifier");
                 }
                 var ok = _dal.Update(id, input);
                 return ok ? NoContent() : NotFound();
@@ -111,11 +111,11 @@ namespace LMPE_API.Controllers
                 var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 if (id == 1)
                 {
-                    return Forbid("Pas le droit de suprimé Admin");
+                    return StatusCode(403,"Pas le droit de suprimé Admin");
                 }
                 if (tokenUserId != id && !isAdmin)
                 {
-                    return Forbid("Pas le droit de suprimé");
+                    return StatusCode(403,"Pas le droit de suprimé");
                 }
                 var ok = _dal.Delete(id);
 
@@ -137,7 +137,7 @@ namespace LMPE_API.Controllers
             {
                 var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
                 if (id != tokenUserId && !isAdmin)
-                    return Forbid("Pas le droit de modifier cette image");
+                    return StatusCode(403,"Pas le droit de modifier cette image");
 
                 if (file == null || file.Length == 0)
                     return BadRequest("Aucun fichier envoyé");

@@ -98,7 +98,7 @@ namespace LMPE_API.Controllers
 
                 if(resulttmp.CreatedBy != tokenUserId && !isAdmin)
                 {
-                    return Forbid("Token invalide");
+                    return StatusCode(403,"Token invalide");
                 }
 
                 var result = _dal.Update(id, input);
@@ -129,7 +129,7 @@ namespace LMPE_API.Controllers
 
                 if (resulttmp.CreatedBy != tokenUserId && !isAdmin)
                 {
-                    return Forbid("Token invalide");
+                    return StatusCode(403,"Token invalide");
                 }
 
                 var result = _dal.Delete(id);
