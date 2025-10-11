@@ -128,3 +128,69 @@ CREATE INDEX idx_bulletin_user ON Bulletin(UserId);
 -- -----------------------------------------------------
 -- Script termin 
 -- -----------------------------------------------------
+
+-- -----------------------------------------------------
+-- Table des messages non lus
+-- -----------------------------------------------------
+CREATE TABLE Notification_User_Message (
+    UserId BIGINT UNSIGNED NOT NULL,
+    MessageId BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (UserId, MessageId),
+    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
+    FOREIGN KEY (MessageId) REFERENCES Message(Id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_Notification_User_Message ON Notification_User_Message(UserId);
+
+-- -----------------------------------------------------
+-- Table des Bulletins non vus
+-- -----------------------------------------------------
+CREATE TABLE Notification_User_Bulletin (
+    UserId BIGINT UNSIGNED NOT NULL,
+    BulletinId BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (UserId, BulletinId),
+    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
+    FOREIGN KEY (BulletinId) REFERENCES Bulletin(Id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_Notification_User_Bulletin ON Notification_User_Bulletin(UserId);
+
+-- -----------------------------------------------------
+-- Table PushSubscription
+-- -----------------------------------------------------
+CREATE TABLE PushSubscription (
+    Id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    UserId BIGINT UNSIGNED NOT NULL,      -- utilisateur cible
+    Endpoint TEXT NOT NULL,               -- endpoint du navigateur
+    P256dh VARCHAR(255) NOT NULL,         -- clé publique
+    Auth VARCHAR(255) NOT NULL,           -- clé auth
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
+    
+    -- ?? Empêche les doublons d’endpoint (on limite l'index sur 255 caractères)
+    UNIQUE KEY idx_push_endpoint_unique (Endpoint(255))
+);
+
+-- Index pour recherche rapide par utilisateur
+CREATE INDEX idx_push_user ON PushSubscription(UserId);
+
+
+INSERT INTO Users (Email, Pseudo, PasswordHash, UrlImage, IsAdmin)
+VALUES 
+('admin', 'admin', 'admin', 'https://example.com/admin.png', TRUE);
+
+
+CREATE TABLE Message_Reaction (
+    Id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    MessageId BIGINT UNSIGNED NOT NULL,
+    UserId BIGINT UNSIGNED NOT NULL,
+    Emoji CHAR(4) NOT NULL,       -- un seul emoji
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (MessageId) REFERENCES Message(Id) ON DELETE CASCADE,
+    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
+    
+    UNIQUE KEY uniq_message_user_emoji (MessageId, UserId)
+);
+
+CREATE INDEX idx_reaction_message ON Message_Reaction(MessageId);

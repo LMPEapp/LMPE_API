@@ -11,6 +11,10 @@ namespace LMPE_API.Hubs
         public static string UpdateMessage = "UpdateMessage";
         public static string DeleteMessage = "DeleteMessage";
 
+
+        public static string ReceiveReaction = "ReceiveReaction";
+        public static string DeleteReaction = "DeleteReaction";
+
         public static string Groupe = "group_";
         public static string User = "user_";
         // Rejoindre un groupe SignalR côté client

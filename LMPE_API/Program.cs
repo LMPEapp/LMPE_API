@@ -23,6 +23,7 @@ builder.Services.AddScoped<AgendaDal>();
 builder.Services.AddScoped<CourbeCADal>();
 builder.Services.AddScoped<PushDal>();
 builder.Services.AddScoped<FileStorageDal>();
+builder.Services.AddScoped<MessageReactionDal>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PushService>();
 builder.Services.AddControllers();

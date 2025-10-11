@@ -21,7 +21,7 @@ namespace LMPE_API.DAL
             UserUrlImage = record["UrlImage"] == DBNull.Value ? null : record["UrlImage"].ToString(),
             UserIsAdmin = Convert.ToBoolean(record["IsAdmin"]),
 
-            IsRead = Convert.ToInt32(record["IsRead"]) > 0  // <- ici
+            IsRead = Convert.ToInt32(record["IsRead"]) > 0
         };
     }
 
@@ -38,37 +38,28 @@ namespace LMPE_API.DAL
         // -------------------- Messages par groupe --------------------
         public IEnumerable<MessageOut> GetByGroupId(long groupId, long userId, int limit, long? lastMessageId = null)
         {
-            var list = new List<MessageOut>();
+            var messages = new Dictionary<long, MessageOut>();
+
             using var conn = _db.GetConnection();
             conn.Open();
 
-            string sql;
-            if (lastMessageId == null)
-            {
-                sql = @"
-                    SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
-                           (n.MessageId IS NOT NULL) AS IsRead
-                    FROM Message m
-                    JOIN Users u ON u.Id = m.UserId
-                    LEFT JOIN Notification_User_Message n 
-                        ON m.Id = n.MessageId AND n.UserId = @UserId
-                    WHERE m.GroupeId=@GroupeId
-                    ORDER BY m.Id DESC
-                    LIMIT @Limit";
-            }
-            else
-            {
-                sql = @"
-                    SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
-                           (n.MessageId IS NOT NULL) AS IsRead
-                    FROM Message m
-                    JOIN Users u ON u.Id = m.UserId
-                    LEFT JOIN Notification_User_Message n 
-                        ON m.Id = n.MessageId AND n.UserId = @UserId
-                    WHERE m.GroupeId=@GroupeId AND m.Id < @LastId
-                    ORDER BY m.Id DESC
-                    LIMIT @Limit";
-            }
+            string sql = @"
+                SELECT 
+                    m.*, 
+                    u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
+                    (n.MessageId IS NOT NULL) AS IsRead,
+                    r.Id AS ReactionId, r.UserId AS ReactionUserId, r.Emoji AS ReactionEmoji, r.CreatedAt AS ReactionCreatedAt,
+                    ru.Email AS ReactionUserEmail, ru.Pseudo AS ReactionUserPseudo, ru.UrlImage AS ReactionUserUrlImage, ru.IsAdmin AS ReactionUserIsAdmin
+                FROM Message m
+                JOIN Users u ON u.Id = m.UserId
+                LEFT JOIN Notification_User_Message n 
+                    ON m.Id = n.MessageId AND n.UserId = @UserId
+                LEFT JOIN Message_Reaction r 
+                    ON m.Id = r.MessageId
+                LEFT JOIN Users ru ON r.UserId = ru.Id
+                WHERE m.GroupeId=@GroupeId" + (lastMessageId != null ? " AND m.Id < @LastId" : "") + @"
+                ORDER BY m.Id DESC
+                LIMIT @Limit;";
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@GroupeId", groupId);
@@ -80,39 +71,98 @@ namespace LMPE_API.DAL
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                list.Add(MessageMapper.Map(reader));
+                var messageId = Convert.ToInt64(reader["Id"]);
+
+                if (!messages.TryGetValue(messageId, out var message))
+                {
+                    message = MessageMapper.Map(reader);
+                    messages[messageId] = message;
+                }
+
+                // Si la ligne contient une réaction
+                if (reader["ReactionId"] != DBNull.Value)
+                {
+                    var reaction = new MessageReactionOut
+                    {
+                        Id = Convert.ToInt64(reader["ReactionId"]),
+                        MessageId = messageId,
+                        UserId = Convert.ToInt64(reader["ReactionUserId"]),
+                        Emoji = reader["ReactionEmoji"].ToString()!,
+                        CreatedAt = Convert.ToDateTime(reader["ReactionCreatedAt"]),
+
+                        UserEmail = reader["ReactionUserEmail"].ToString()!,
+                        UserPseudo = reader["ReactionUserPseudo"].ToString()!,
+                        UserUrlImage = reader["ReactionUserUrlImage"] == DBNull.Value ? null : reader["ReactionUserUrlImage"].ToString(),
+                        UserIsAdmin = Convert.ToBoolean(reader["ReactionUserIsAdmin"])
+                    };
+                    message.Reactions.Add(reaction);
+                }
             }
 
-            return list.OrderBy(m => m.Id);
+            return messages.Values.OrderBy(m => m.Id);
         }
+
+
 
 
         public MessageOut? GetById(long messageId, long userId)
         {
+            MessageOut? message = null;
+
             using var conn = _db.GetConnection();
             conn.Open();
 
             string sql = @"
-                SELECT m.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
-                       (n.MessageId IS NOT NULL) AS IsRead
+                SELECT 
+                    m.*, 
+                    u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
+                    (n.MessageId IS NOT NULL) AS IsRead,
+                    r.Id AS ReactionId, r.UserId AS ReactionUserId, r.Emoji AS ReactionEmoji, r.CreatedAt AS ReactionCreatedAt,
+                    ru.Email AS ReactionUserEmail, ru.Pseudo AS ReactionUserPseudo, ru.UrlImage AS ReactionUserUrlImage, ru.IsAdmin AS ReactionUserIsAdmin
                 FROM Message m
                 JOIN Users u ON u.Id = m.UserId
                 LEFT JOIN Notification_User_Message n 
                     ON m.Id = n.MessageId AND n.UserId = @UserId
-                WHERE m.Id=@Id";
+                LEFT JOIN Message_Reaction r
+                    ON m.Id = r.MessageId
+                LEFT JOIN Users ru ON r.UserId = ru.Id
+                WHERE m.Id = @Id;";
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", messageId);
             cmd.Parameters.AddWithValue("@UserId", userId);
 
             using var reader = cmd.ExecuteReader();
-            if (reader.Read())
+            while (reader.Read())
             {
-                return MessageMapper.Map(reader);
+                if (message == null)
+                {
+                    message = MessageMapper.Map(reader);
+                }
+
+                // Si la ligne contient une réaction
+                if (reader["ReactionId"] != DBNull.Value)
+                {
+                    var reaction = new MessageReactionOut
+                    {
+                        Id = Convert.ToInt64(reader["ReactionId"]),
+                        MessageId = messageId,
+                        UserId = Convert.ToInt64(reader["ReactionUserId"]),
+                        Emoji = reader["ReactionEmoji"].ToString()!,
+                        CreatedAt = Convert.ToDateTime(reader["ReactionCreatedAt"]),
+
+                        UserEmail = reader["ReactionUserEmail"].ToString()!,
+                        UserPseudo = reader["ReactionUserPseudo"].ToString()!,
+                        UserUrlImage = reader["ReactionUserUrlImage"] == DBNull.Value ? null : reader["ReactionUserUrlImage"].ToString(),
+                        UserIsAdmin = Convert.ToBoolean(reader["ReactionUserIsAdmin"])
+                    };
+                    message.Reactions.Add(reaction);
+                }
             }
 
-            return null;
+            return message;
         }
+
 
 
 

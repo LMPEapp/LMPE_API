@@ -27,6 +27,8 @@ namespace LMPE_API.Models
         public bool UserIsAdmin { get; set; }
 
         public bool IsRead { get; set; } = false;
+
+        public List<MessageReactionOut> Reactions { get; set; } = new List<MessageReactionOut>();
     }
     public class MessageIn
     {
