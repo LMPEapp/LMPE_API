@@ -119,7 +119,7 @@ namespace LMPE_API.Controllers
                 }
                 var ok = _dal.Delete(id);
 
-                _dalFile.DeleteFile(resource, id);
+                _dalFile.DeleteFile(resource, id.ToString());
 
                 return ok ? NoContent() : NotFound();
             }
@@ -143,7 +143,8 @@ namespace LMPE_API.Controllers
                     return BadRequest("Aucun fichier envoyé");
 
                 // Sauvegarde via DAL
-                var url = _dalFile.SaveFile(file, resource, id);
+                var fileName = _dalFile.SaveFile(file, resource, id.ToString());
+                var url = _dalFile.GetUrl(resource, fileName);
 
                 var user = _dal.GetById(id);
                 if (user == null) return NotFound();

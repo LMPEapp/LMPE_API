@@ -9,7 +9,7 @@
             _env = env;
         }
 
-        public string SaveFile(IFormFile file, string resourceType, long resourceId)
+        public string SaveFile(IFormFile file, string resourceType, string resourceId)
         {
             // Crée le dossier correspondant à la ressource
             var folderPath = Path.Combine(_env.ContentRootPath, "uploads", resourceType);
@@ -27,10 +27,15 @@
                 file.CopyTo(stream);
             }
 
+            return fileName;
+        }
+
+        public string GetUrl(string resourceType, string fileName)
+        {
             return $"uploads/{resourceType}/{fileName}";
         }
 
-        public bool DeleteFile(string resourceType, long resourceId)
+        public bool DeleteFile(string resourceType, string resourceId)
         {
             try
             {

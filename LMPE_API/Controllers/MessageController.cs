@@ -17,12 +17,16 @@ namespace LMPE_API.Controllers
         private readonly MessageDal _dal;
         private readonly IHubContext<MessageHub> _hub;
         private readonly PushService _pushService;
+        private readonly FileStorageDal _dalFile;
 
-        public MessageController(MessageDal dal, IHubContext<MessageHub> hub, PushService pushService)
+        private readonly string resource = "messages";
+
+        public MessageController(MessageDal dal, IHubContext<MessageHub> hub, PushService pushService, FileStorageDal dalFile)
         {
             _dal = dal;
             _hub = hub;
             _pushService = pushService;
+            _dalFile = dalFile;
         }
 
 
@@ -162,6 +166,9 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+                var message = _dal.GetById(messageId, tokenUserId)!;
+                _dalFile.DeleteFile(resource, message.Content);
                 var result = _dal.Delete(messageId);
                 if (result)
                 {
@@ -175,5 +182,64 @@ namespace LMPE_API.Controllers
                 return StatusCode(500, "Erreur serveur: " + ex.Message);
             }
         }
+
+        [Authorize]
+        [HttpPost("groupe/{groupId:long}/upload")]
+        public IActionResult Upload(long groupId, [FromForm] IFormFile file)
+        {
+            string unique = Guid.NewGuid().ToString("N");
+
+            try
+            {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+
+                if (file == null || file.Length == 0)
+                    return BadRequest("Aucun fichier envoyé");
+
+                // 📂 Détection du type de fichier
+                string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                string[] videoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm" };
+
+                string extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                string contentType = file.ContentType.ToLowerInvariant();
+
+                // Vérifie le type
+                bool isImage = imageExtensions.Contains(extension) || contentType.StartsWith("image/");
+                bool isVideo = videoExtensions.Contains(extension) || contentType.StartsWith("video/");
+
+                // Définit le type pour le message
+                string type;
+                if (isImage) type = "image";
+                else if (isVideo) type = "video";
+                else type = "fichier";
+
+
+                // 💾 Sauvegarde du fichier
+                var filename = _dalFile.SaveFile(file, resource, unique);
+
+                // 📨 Création du message
+                var messageIN = new MessageIn
+                {
+                    Type = type,
+                    UserId = tokenUserId,
+                    Content = filename
+                };
+
+                var id = _dal.Insert(groupId, messageIN);
+                var message = _dal.GetById(id, tokenUserId)!;
+
+                // 📡 Envoi via SignalR
+                _hub.Clients.Group($"{MessageHub.Groupe}{groupId}")
+                    .SendAsync(MessageHub.ReceiveMessage, message);
+
+                return Ok(message);
+            }
+            catch (Exception ex)
+            {
+                _dalFile.DeleteFile(resource, unique);
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
+        }
+
     }
 }

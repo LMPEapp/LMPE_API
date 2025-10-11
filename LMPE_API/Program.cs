@@ -1,5 +1,6 @@
 using LMPE_API.DAL;
 using LMPE_API.Data;
+using LMPE_API.Helpers;
 using LMPE_API.Hubs;
 using LMPE_API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,7 +26,9 @@ builder.Services.AddScoped<FileStorageDal>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PushService>();
 builder.Services.AddControllers();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(); 
+builder.Services.AddScoped<MessageHelper>();
+
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -70,5 +73,13 @@ app.MapControllers();
 app.MapHub<MessageHub>("/messageHub");
 app.MapHub<AgendaHub>("/agendaHub");
 app.MapHub<CourbecaHub>("/courbecaHub");
+
+_ = Task.Run(async () =>
+{
+    using var scope = app.Services.CreateScope();
+    var helper = scope.ServiceProvider.GetRequiredService<MessageHelper>();
+    await helper.RunDailyCleanup(CancellationToken.None);
+});
+
 
 app.Run();

@@ -261,5 +261,40 @@ namespace LMPE_API.DAL
             cmd.Parameters.AddWithValue("@Id", messageId);
             return cmd.ExecuteNonQuery() > 0;
         }
+        public IEnumerable<Message> GetOldMessages(int days = 30)
+        {
+            var list = new List<Message>();
+            using var conn = _db.GetConnection();
+            conn.Open();
+
+            var cutoffDate = DateTime.UtcNow.AddDays(-days);
+
+            string sql = @"
+                SELECT Id, GroupeId, UserId, Type, Content, CreatedAt
+                FROM Message
+                WHERE CreatedAt < @CutoffDate
+                ORDER BY Id ASC;";
+
+            using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@CutoffDate", cutoffDate);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(new Message
+                {
+                    Id = reader.GetInt64("Id"),
+                    GroupeId = reader.GetInt64("GroupeId"),
+                    UserId = reader.GetInt64("UserId"),
+                    Type = reader["Type"].ToString()!,
+                    Content = reader["Content"].ToString()!,
+                    CreatedAt = reader.GetDateTime("CreatedAt")
+                });
+            }
+
+            return list;
+        }
+
+
     }
 }
