@@ -132,11 +132,11 @@ namespace LMPE_API.DAL
             using var conn = _db.GetConnection();
             conn.Open();
 
-            string sql = "UPDATE Users SET ImageUrl = @ImageUrl WHERE Id = @Id";
+            string sql = "UPDATE Users SET UrlImage = @UrlImage WHERE Id = @Id";
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", id);
-            cmd.Parameters.AddWithValue("@ImageUrl", imageUrl);
+            cmd.Parameters.AddWithValue("@UrlImage", imageUrl);
 
             return cmd.ExecuteNonQuery() > 0;
         }
