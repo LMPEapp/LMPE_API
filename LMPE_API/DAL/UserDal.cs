@@ -115,8 +115,6 @@ namespace LMPE_API.DAL
             conn.Open();
 
             string sql = "UPDATE Users SET Email=@Email, Pseudo=@Pseudo, IsAdmin=@IsAdmin";
-            if (u.UrlImage != null)
-                sql += ", UrlImage=@UrlImage";
             sql += " WHERE Id=@Id";
 
             using var cmd = new MySqlCommand(sql, conn);
@@ -125,9 +123,6 @@ namespace LMPE_API.DAL
             cmd.Parameters.AddWithValue("@Email", u.Email);
             cmd.Parameters.AddWithValue("@Pseudo", u.Pseudo);
             cmd.Parameters.AddWithValue("@IsAdmin", u.IsAdmin);
-
-            if (u.UrlImage != null)
-                cmd.Parameters.AddWithValue("@UrlImage", u.UrlImage);
 
             return cmd.ExecuteNonQuery() > 0;
         }
