@@ -146,18 +146,7 @@ namespace LMPE_API.Controllers
                 var fileName = _dalFile.SaveFile(file, resource, id.ToString());
                 var url = _dalFile.GetUrl(resource, fileName);
 
-                var user = _dal.GetById(id);
-                if (user == null) return NotFound();
-
-                var userIn = new UserIn
-                {
-                    Email = user.Email,
-                    Pseudo = user.Pseudo,
-                    PasswordHash = "",
-                    IsAdmin = user.IsAdmin,
-                    UrlImage = url
-                };
-                var ok = _dal.Update(id, userIn);
+                var ok = _dal.UpdateUrlImage(id, url);
 
                 // Génère l'URL publique
             
