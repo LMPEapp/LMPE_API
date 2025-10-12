@@ -144,13 +144,12 @@ namespace LMPE_API.Controllers
 
                 // Sauvegarde via DAL
                 var fileName = _dalFile.SaveFile(file, resource, id.ToString());
-                var url = _dalFile.GetUrl(resource, fileName);
 
-                var ok = _dal.UpdateUrlImage(id, url);
+                var ok = _dal.UpdateUrlImage(id, fileName);
 
                 // Génère l'URL publique
             
-                return Ok(new { url });
+                return Ok(new { fileName });
             }
             catch (Exception ex)
             {

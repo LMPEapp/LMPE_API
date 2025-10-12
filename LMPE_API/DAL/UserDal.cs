@@ -127,6 +127,21 @@ namespace LMPE_API.DAL
             return cmd.ExecuteNonQuery() > 0;
         }
 
+        public bool UpdateUrlImage(long id, string imageUrl)
+        {
+            using var conn = _db.GetConnection();
+            conn.Open();
+
+            string sql = "UPDATE Users SET ImageUrl = @ImageUrl WHERE Id = @Id";
+
+            using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@Id", id);
+            cmd.Parameters.AddWithValue("@ImageUrl", imageUrl);
+
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
+
 
         public bool UpdatePawword(long id, string PasswordHash)
         {
