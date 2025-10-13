@@ -25,11 +25,11 @@ namespace LMPE_API.Controllers
 
         [Authorize]
         [HttpGet]
-        public ActionResult<IEnumerable<CourbeCAGroupByDatePoint>> GetAllGroupeByDate([FromQuery] DateOnly startDate, [FromQuery] DateOnly endDate)
+        public ActionResult<IEnumerable<CourbeCAGroupByDatePoint>> GetAllGroupeByDate([FromQuery] DateOnly startDate, [FromQuery] DateOnly endDate, [FromQuery] long? idUser = null)
         {
             try
             {
-                return Ok(_dal.GetAllGroupeByDate(startDate, endDate));
+                return Ok(_dal.GetAllGroupeByDate(startDate, endDate, idUser));
             }
             catch (Exception ex)
             {
@@ -38,11 +38,11 @@ namespace LMPE_API.Controllers
         }
         [Authorize]
         [HttpGet("data")]
-        public ActionResult<IEnumerable<CourbeCA>> GetAll(long? lastId = null, int pageSize = 30)
+        public ActionResult<IEnumerable<CourbeCA>> GetAll([FromQuery] long? lastId = null, [FromQuery] int pageSize = 30, [FromQuery] long? idUser = null)
         {
             try
             {
-                return Ok(_dal.GetAll(lastId, pageSize));
+                return Ok(_dal.GetAll(lastId, pageSize, idUser));
             }
             catch (Exception ex)
             {

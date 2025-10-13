@@ -35,7 +35,7 @@ namespace LMPE_API.DAL
             _db = db;
         }
 
-        public IEnumerable<CourbeCAGroupByDatePoint> GetAllGroupeByDate(DateOnly startDate, DateOnly endDate)
+        public IEnumerable<CourbeCAGroupByDatePoint> GetAllGroupeByDate(DateOnly startDate, DateOnly endDate, long? idUser)
         {
             var list = new List<CourbeCAGroupByDatePoint>();
             using var conn = _db.GetConnection();
@@ -48,13 +48,22 @@ namespace LMPE_API.DAL
                     SUM(Amount) AS TotalAmount,
                     COUNT(*) AS CountItems
                 FROM CourbeCA
-                WHERE DatePoint BETWEEN @StartDate AND @EndDate
+                WHERE DatePoint BETWEEN @StartDate AND @EndDate";
+
+            // 🔹 Ajout du filtre UserId si défini
+            if (idUser.HasValue)
+                sql += " AND UserId = @UserId";
+
+            sql += @"
                 GROUP BY DatePoint
                 ORDER BY DatePoint ASC";
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@StartDate", startDate.ToDateTime(new TimeOnly(0, 0)));
             cmd.Parameters.AddWithValue("@EndDate", endDate.ToDateTime(new TimeOnly(0, 0)));
+
+            if (idUser.HasValue)
+                cmd.Parameters.AddWithValue("@UserId", idUser.Value);
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -71,7 +80,8 @@ namespace LMPE_API.DAL
             return list;
         }
 
-        public IEnumerable<CourbeCA> GetAll(long? lastId, int pageSize)
+
+        public IEnumerable<CourbeCA> GetAll(long? lastId, int pageSize, long? idUser)
         {
             var list = new List<CourbeCA>();
             using var conn = _db.GetConnection();
@@ -85,15 +95,28 @@ namespace LMPE_API.DAL
                 ORDER BY ca.Id DESC
                 LIMIT @PageSize";
 
+            var whereClauses = new List<string>();
+
             if (lastId.HasValue)
-                sql = sql.Replace("/**WHERE_CLAUSE**/", "WHERE ca.Id < @LastId");
+                whereClauses.Add("ca.Id < @LastId");
+
+            if (idUser.HasValue)
+                whereClauses.Add("ca.UserId = @UserId");
+
+            // Construction du WHERE dynamique
+            if (whereClauses.Count > 0)
+                sql = sql.Replace("/**WHERE_CLAUSE**/", "WHERE " + string.Join(" AND ", whereClauses));
             else
                 sql = sql.Replace("/**WHERE_CLAUSE**/", "");
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@PageSize", pageSize);
+
             if (lastId.HasValue)
                 cmd.Parameters.AddWithValue("@LastId", lastId.Value);
+
+            if (idUser.HasValue)
+                cmd.Parameters.AddWithValue("@UserId", idUser.Value);
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -103,6 +126,7 @@ namespace LMPE_API.DAL
 
             return list;
         }
+
 
 
         public CourbeCA? GetById(long id)
