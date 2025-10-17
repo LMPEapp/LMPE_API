@@ -43,15 +43,18 @@ CREATE TABLE User_Groupe (
 -- Table Message
 -- -----------------------------------------------------
 CREATE TABLE Message (
-    Id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    GroupeId BIGINT UNSIGNED NOT NULL,
-    UserId BIGINT UNSIGNED NOT NULL,
-    Type ENUM('texte','image','video','fichier') DEFAULT 'texte',
-    Content TEXT,             -- pour texte ou URL du fichier
-    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (GroupeId) REFERENCES GroupeConversation(Id) ON DELETE CASCADE,
-    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+     Id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     GroupeId BIGINT UNSIGNED NOT NULL,
+     UserId BIGINT UNSIGNED NOT NULL,
+     ParentId BIGINT UNSIGNED NULL,
+     Type ENUM('texte','image','video','fichier') DEFAULT 'texte',
+     Content TEXT,             -- pour texte ou URL du fichier
+     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     FOREIGN KEY (GroupeId) REFERENCES GroupeConversation(Id) ON DELETE CASCADE,
+     FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
+     FOREIGN KEY (ParentId) REFERENCES Message(Id) ON DELETE SET NULL
 );
+
 
 -- -----------------------------------------------------
 -- Table Agenda (multi-utilisateurs)
@@ -194,3 +197,8 @@ CREATE TABLE Message_Reaction (
 );
 
 CREATE INDEX idx_reaction_message ON Message_Reaction(MessageId);
+
+ALTER TABLE Message
+    ADD COLUMN ParentId BIGINT UNSIGNED NULL AFTER UserId,
+ADD FOREIGN KEY (ParentId) REFERENCES Message(Id) ON DELETE CASCADE;
+

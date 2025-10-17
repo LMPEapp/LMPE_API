@@ -19,6 +19,8 @@ namespace LMPE_API.Models
         public string Type { get; set; } = "texte";
         public string Content { get; set; } = "";
         public DateTime CreatedAt { get; set; }
+        
+        public long? ParentId { get; set; }
 
         // Infos utilisateur
         public string UserEmail { get; set; } = "";
@@ -29,12 +31,26 @@ namespace LMPE_API.Models
         public bool IsRead { get; set; } = false;
 
         public List<MessageReactionOut> Reactions { get; set; } = new List<MessageReactionOut>();
+        
+        public long? ParentGroupeId { get; set; }
+        public long? ParentUserId { get; set; }
+        public string? ParentType { get; set; } = "texte";
+        public string? ParentContent { get; set; } = "";
+        public DateTime? ParentCreatedAt { get; set; }
+
+        // Infos utilisateur
+        public string? ParentUserEmail { get; set; } = "";
+        public string? ParentUserPseudo { get; set; } = "";
+        public string? ParentUserUrlImage { get; set; }
+        public bool? ParentUserIsAdmin { get; set; }
     }
     public class MessageIn
     {
         public long UserId { get; set; } // peut être récupéré depuis JWT
         public string Type { get; set; } = "texte";
         public string Content { get; set; } = "";
+        
+        public long? ParentId { get; set; }
     }
 
 }

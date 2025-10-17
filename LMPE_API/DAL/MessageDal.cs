@@ -20,10 +20,25 @@ namespace LMPE_API.DAL
             UserPseudo = record["Pseudo"].ToString()!,
             UserUrlImage = record["UrlImage"] == DBNull.Value ? null : record["UrlImage"].ToString(),
             UserIsAdmin = Convert.ToBoolean(record["IsAdmin"]),
+            ParentId = record["ParentId"] == DBNull.Value ?null : Convert.ToInt64(record["ParentId"]),
 
-            IsRead = Convert.ToInt32(record["IsRead"]) > 0
+            IsRead = Convert.ToInt32(record["IsRead"]) > 0,
+
+            ParentGroupeId = record["ParentGroupeId"] == DBNull.Value ?null : Convert.ToInt64(record["ParentGroupeId"]),
+            ParentUserId = record["ParentUserId"] == DBNull.Value ?null : Convert.ToInt64(record["ParentUserId"]),
+            ParentType = record["ParentType"] == DBNull.Value ?null : record["ParentType"].ToString()!,
+            ParentContent = record["ParentContent"] == DBNull.Value ?null : record["ParentContent"].ToString()!,
+            ParentCreatedAt = record["ParentCreatedAt"] == DBNull.Value ?null : Convert.ToDateTime(record["ParentCreatedAt"]),
+
+            ParentUserEmail = record["ParentUserEmail"] == DBNull.Value ?null : record["ParentUserEmail"].ToString()!,
+            ParentUserPseudo = record["ParentUserPseudo"] == DBNull.Value ?null : record["ParentUserPseudo"].ToString()!,
+            ParentUserUrlImage = record["ParentUserUrlImage"] == DBNull.Value ?null : record["ParentUserUrlImage"].ToString(),
+            ParentUserIsAdmin = record["ParentUserIsAdmin"] == DBNull.Value ?null : Convert.ToBoolean(record["ParentUserIsAdmin"]),
+
+            Reactions = new List<MessageReactionOut>()
         };
     }
+
 
 
     public class MessageDal
@@ -44,22 +59,40 @@ namespace LMPE_API.DAL
             conn.Open();
 
             string sql = @"
-                SELECT 
-                    m.*, 
-                    u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
-                    (n.MessageId IS NOT NULL) AS IsRead,
-                    r.Id AS ReactionId, r.UserId AS ReactionUserId, r.Emoji AS ReactionEmoji, r.CreatedAt AS ReactionCreatedAt,
-                    ru.Email AS ReactionUserEmail, ru.Pseudo AS ReactionUserPseudo, ru.UrlImage AS ReactionUserUrlImage, ru.IsAdmin AS ReactionUserIsAdmin
-                FROM Message m
-                JOIN Users u ON u.Id = m.UserId
-                LEFT JOIN Notification_User_Message n 
-                    ON m.Id = n.MessageId AND n.UserId = @UserId
-                LEFT JOIN Message_Reaction r 
-                    ON m.Id = r.MessageId
-                LEFT JOIN Users ru ON r.UserId = ru.Id
-                WHERE m.GroupeId=@GroupeId" + (lastMessageId != null ? " AND m.Id < @LastId" : "") + @"
-                ORDER BY m.Id DESC
-                LIMIT @Limit;";
+                                SELECT 
+                                    m.*, 
+                                    u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
+                                    (n.MessageId IS NOT NULL) AS IsRead,
+                                    r.Id AS ReactionId, r.UserId AS ReactionUserId, r.Emoji AS ReactionEmoji, r.CreatedAt AS ReactionCreatedAt,
+                                    ru.Email AS ReactionUserEmail, ru.Pseudo AS ReactionUserPseudo, ru.UrlImage AS ReactionUserUrlImage, ru.IsAdmin AS ReactionUserIsAdmin,
+
+                                    -- Infos parent
+                                    pm.GroupeId AS ParentGroupeId,
+                                    pm.UserId AS ParentUserId,
+                                    pm.Type AS ParentType,
+                                    pm.Content AS ParentContent,
+                                    pm.CreatedAt AS ParentCreatedAt,
+                                    pu.Email AS ParentUserEmail,
+                                    pu.Pseudo AS ParentUserPseudo,
+                                    pu.UrlImage AS ParentUserUrlImage,
+                                    pu.IsAdmin AS ParentUserIsAdmin
+
+                                FROM Message m
+                                JOIN Users u ON u.Id = m.UserId
+                                LEFT JOIN Notification_User_Message n 
+                                    ON m.Id = n.MessageId AND n.UserId = @UserId
+                                LEFT JOIN Message_Reaction r 
+                                    ON m.Id = r.MessageId
+                                LEFT JOIN Users ru ON r.UserId = ru.Id
+
+                                LEFT JOIN Message pm ON pm.Id = m.ParentId
+                                LEFT JOIN Users pu ON pu.Id = pm.UserId
+
+                                WHERE m.GroupeId=@GroupeId" + (lastMessageId != null ? " AND m.Id < @LastId" : "") + @"
+                                ORDER BY m.Id DESC
+                                LIMIT @Limit;";
+
+
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@GroupeId", groupId);
@@ -113,20 +146,37 @@ namespace LMPE_API.DAL
             conn.Open();
 
             string sql = @"
-                SELECT 
-                    m.*, 
-                    u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
-                    (n.MessageId IS NOT NULL) AS IsRead,
-                    r.Id AS ReactionId, r.UserId AS ReactionUserId, r.Emoji AS ReactionEmoji, r.CreatedAt AS ReactionCreatedAt,
-                    ru.Email AS ReactionUserEmail, ru.Pseudo AS ReactionUserPseudo, ru.UrlImage AS ReactionUserUrlImage, ru.IsAdmin AS ReactionUserIsAdmin
-                FROM Message m
-                JOIN Users u ON u.Id = m.UserId
-                LEFT JOIN Notification_User_Message n 
-                    ON m.Id = n.MessageId AND n.UserId = @UserId
-                LEFT JOIN Message_Reaction r
-                    ON m.Id = r.MessageId
-                LEFT JOIN Users ru ON r.UserId = ru.Id
-                WHERE m.Id = @Id;";
+                            SELECT 
+                                m.*, 
+                                u.Email, u.Pseudo, u.UrlImage, u.IsAdmin,
+                                (n.MessageId IS NOT NULL) AS IsRead,
+                                r.Id AS ReactionId, r.UserId AS ReactionUserId, r.Emoji AS ReactionEmoji, r.CreatedAt AS ReactionCreatedAt,
+                                ru.Email AS ReactionUserEmail, ru.Pseudo AS ReactionUserPseudo, ru.UrlImage AS ReactionUserUrlImage, ru.IsAdmin AS ReactionUserIsAdmin,
+
+                                -- Infos parent
+                                pm.GroupeId AS ParentGroupeId,
+                                pm.UserId AS ParentUserId,
+                                pm.Type AS ParentType,
+                                pm.Content AS ParentContent,
+                                pm.CreatedAt AS ParentCreatedAt,
+                                pu.Email AS ParentUserEmail,
+                                pu.Pseudo AS ParentUserPseudo,
+                                pu.UrlImage AS ParentUserUrlImage,
+                                pu.IsAdmin AS ParentUserIsAdmin
+
+                            FROM Message m
+                            JOIN Users u ON u.Id = m.UserId
+                            LEFT JOIN Notification_User_Message n 
+                                ON m.Id = n.MessageId AND n.UserId = @UserId
+                            LEFT JOIN Message_Reaction r
+                                ON m.Id = r.MessageId
+                            LEFT JOIN Users ru ON r.UserId = ru.Id
+
+                            LEFT JOIN Message pm ON pm.Id = m.ParentId
+                            LEFT JOIN Users pu ON pu.Id = pm.UserId
+
+                            WHERE m.Id = @Id;";
+
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", messageId);
@@ -177,14 +227,15 @@ namespace LMPE_API.DAL
             {
                 // 1️ Insertion du message
                 using var cmd = new MySqlCommand(@"
-                    INSERT INTO Message (GroupeId, UserId, Type, Content)
-                    VALUES (@GroupeId, @UserId, @Type, @Content);
+                    INSERT INTO Message (GroupeId, UserId, Type, Content, ParentId)
+                    VALUES (@GroupeId, @UserId, @Type, @Content, @ParentId);
                     SELECT LAST_INSERT_ID();", conn, tran);
 
                 cmd.Parameters.AddWithValue("@GroupeId", groupId);
                 cmd.Parameters.AddWithValue("@UserId", m.UserId);
                 cmd.Parameters.AddWithValue("@Type", m.Type);
                 cmd.Parameters.AddWithValue("@Content", m.Content);
+                cmd.Parameters.AddWithValue("@ParentId", m.ParentId);
 
                 var messageId = Convert.ToInt64(cmd.ExecuteScalar());
 
