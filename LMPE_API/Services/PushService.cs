@@ -16,8 +16,9 @@ namespace LMPE_API.Services
             _dal = dal;
         }
 
-        public void SendToUser(long userId, string title, string body)
+        public void SendToUser(long userId, GroupeConversation? groupeConversation)
         {
+            if(groupeConversation == null){ Console.WriteLine("PushService.SendToUser : groupeConversation est null ");}
             var subscriptions = _dal.GetByUserId(userId);
             var webPush = new WebPushClient();
 
@@ -42,16 +43,18 @@ namespace LMPE_API.Services
                 {
                     notification = new
                     {
-                        title = title,
-                        body = body,
+                        title = "Message",
+                        body = $"Vous avez un (des) nouveau(x) message(s) dans le groupe : {groupeConversation.Name}",
                         icon = "/assets/logo.png",
                         vibrate = new[] { 100, 50, 100 },
-                        tag = "messages",
+                        tag = $"Groupe_{groupeConversation.Id}",
                         renotify = true,
                         data = new
                         {
                             dateOfArrival = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                            primaryKey = 1
+                            primaryKey = 1,
+                            groupId = groupeConversation.Id,
+                            groupName = groupeConversation.Name
                         }
                     }
                 };

@@ -15,18 +15,20 @@ namespace LMPE_API.Controllers
     public class MessageController : ControllerBase
     {
         private readonly MessageDal _dal;
+        private readonly GroupeConversationDal _dalGroupe;
         private readonly IHubContext<MessageHub> _hub;
         private readonly PushService _pushService;
         private readonly FileStorageDal _dalFile;
 
         private readonly string resource = "messages";
 
-        public MessageController(MessageDal dal, IHubContext<MessageHub> hub, PushService pushService, FileStorageDal dalFile)
+        public MessageController(MessageDal dal, IHubContext<MessageHub> hub, PushService pushService, FileStorageDal dalFile, GroupeConversationDal dalGroupe)
         {
             _dal = dal;
             _hub = hub;
             _pushService = pushService;
             _dalFile = dalFile;
+            _dalGroupe = dalGroupe;
         }
 
 
@@ -62,6 +64,8 @@ namespace LMPE_API.Controllers
                 var id = _dal.Insert(groupId, input);
                 var message = _dal.GetById(id, tokenUserId)!;
 
+                var groupe = _dalGroupe.GetById(groupId, id);
+
                 _hub.Clients.Group($"{MessageHub.Groupe}{groupId}").SendAsync(MessageHub.ReceiveMessage, message);
 
                 var userIdsToNotify = _dal.GetUserIdsToNotify(groupId);
@@ -73,9 +77,7 @@ namespace LMPE_API.Controllers
                     {
                         try
                         {
-                            _pushService.SendToUser(userIdToNotify,
-                                $"Nouveau message {message.UserPseudo}",
-                                $"{message.Content}");
+                            _pushService.SendToUser(userIdToNotify, groupe);
 
                         }
                         catch (Exception ex)
