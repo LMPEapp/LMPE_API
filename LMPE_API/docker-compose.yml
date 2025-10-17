@@ -13,7 +13,7 @@ services:
       MARIADB_USER: "user"
       MARIADB_PASSWORD: "${DB_PASSWORD}"
     volumes:
-      - ./db_data:/var/lib/mysql
+      - /var/lib/lmpe_api/db_data:/var/lib/mysql
       - ./init-scripts/:/docker-entrypoint-initdb.d/:ro
     networks:
       - mariadb-network
