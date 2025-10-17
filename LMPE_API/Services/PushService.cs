@@ -43,8 +43,8 @@ namespace LMPE_API.Services
                 {
                     notification = new
                     {
-                        title = "Message",
-                        body = $"Vous avez un (des) nouveau(x) message(s) dans le groupe : {groupeConversation.Name}",
+                        title = $"Groupe : {groupeConversation.Name}",
+                        body = "Vous avez un (des) nouveau(x) message(s)",
                         icon = "/assets/logo.png",
                         vibrate = new[] { 100, 50, 100 },
                         tag = $"Groupe_{groupeConversation.Id}",
