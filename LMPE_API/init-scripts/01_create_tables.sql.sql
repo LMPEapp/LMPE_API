@@ -87,10 +87,10 @@ CREATE TABLE Agenda_User (
 -- -----------------------------------------------------
 CREATE TABLE CourbeCA (
     Id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    UserId BIGINT UNSIGNED NOT NULL,
-    DatePoint DATETIME NOT NULL,
+    UserId BIGINT UNSIGNED NULL,
+    DatePoint DATE NOT NULL,
     Amount DECIMAL(12,2) NOT NULL,
-    Description VARCHAR(255),
+    Description TEXT,
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE NO ACTION
 );
@@ -197,8 +197,3 @@ CREATE TABLE Message_Reaction (
 );
 
 CREATE INDEX idx_reaction_message ON Message_Reaction(MessageId);
-
-ALTER TABLE Message
-    ADD COLUMN ParentId BIGINT UNSIGNED NULL AFTER UserId,
-ADD FOREIGN KEY (ParentId) REFERENCES Message(Id) ON DELETE CASCADE;
-

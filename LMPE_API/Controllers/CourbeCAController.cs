@@ -72,6 +72,29 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                var (tokenUserId, isAdmin) = UserHelper.GetUserIdAndAdmin(User);
+
+                input.UserId = tokenUserId;
+
+                var id = _dal.Insert(input);
+                var ca = _dal.GetById(id)!;
+
+                _hub.Clients.Group(globalGroup).SendAsync(CourbecaHub.CourbecaCreated, ca);
+
+                return CreatedAtAction(nameof(GetById), new { id = ca.Id }, ca);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
+        }
+
+        
+        [HttpPost("Achat")]
+        public ActionResult<CourbeCA> Achat([FromBody] CourbeCAIn input)
+        {
+            try
+            {
                 var id = _dal.Insert(input);
                 var ca = _dal.GetById(id)!;
 

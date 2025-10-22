@@ -12,16 +12,17 @@ namespace LMPE_API.DAL
             return new CourbeCA
             {
                 Id = Convert.ToInt64(record["Id"]),
-                UserId = Convert.ToInt64(record["UserId"]),
+                UserId = record["UserId"] == DBNull.Value ? null : Convert.ToInt64(record["UserId"]),
                 DatePoint = DateOnly.FromDateTime(Convert.ToDateTime(record["DatePoint"])),
                 Amount = Convert.ToDecimal(record["Amount"]),
                 Description = record["Description"] as string,
                 CreatedAt = Convert.ToDateTime(record["CreatedAt"]),
 
-                UserEmail = Convert.ToString(record["Email"])!,
-                UserPseudo = Convert.ToString(record["Pseudo"])!,
-                UserUrlImage = record["UrlImage"] as string,
-                UserIsAdmin = Convert.ToBoolean(record["IsAdmin"])
+                UserEmail = record["Email"] != DBNull.Value ? Convert.ToString(record["Email"]) : null,
+                UserPseudo = record["Pseudo"] != DBNull.Value ? Convert.ToString(record["Pseudo"]) : null,
+                UserUrlImage = record["UrlImage"] == DBNull.Value ? null : record["UrlImage"] as string,
+                UserIsAdmin = record["IsAdmin"] == DBNull.Value ? null : Convert.ToBoolean(record["IsAdmin"])
+
             };
         }
     }
@@ -90,7 +91,7 @@ namespace LMPE_API.DAL
             string sql = @"
                 SELECT ca.*, u.Email, u.IsAdmin, u.Pseudo, u.UrlImage
                 FROM CourbeCA ca
-                JOIN Users u ON ca.UserId = u.Id
+                LEFT JOIN Users u ON ca.UserId = u.Id
                 /**WHERE_CLAUSE**/
                 ORDER BY ca.Id DESC
                 LIMIT @PageSize";
@@ -136,12 +137,13 @@ namespace LMPE_API.DAL
             var sql = @"
                 SELECT ca.*, u.Email, u.Pseudo, u.UrlImage, u.IsAdmin
                 FROM CourbeCA ca
-                INNER JOIN Users u ON ca.UserId = u.Id
+                LEFT JOIN Users u ON ca.UserId = u.Id
                 WHERE ca.Id=@Id";
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", id);
             using var reader = cmd.ExecuteReader();
+            Console.WriteLine(reader.ToString());
             return reader.Read() ? CourbeCAMapper.Map(reader) : null;
         }
 
