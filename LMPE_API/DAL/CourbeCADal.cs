@@ -36,26 +36,37 @@ namespace LMPE_API.DAL
             _db = db;
         }
 
-        public IEnumerable<CourbeCAGroupByDatePoint> GetAllGroupeByDate(DateOnly startDate, DateOnly endDate, long? idUser)
+        public IEnumerable<CourbeCAGroupByDatePoint> GetAllGroupeByDate(DateOnly startDate, DateOnly endDate, bool allData, long? idUser)
         {
             var list = new List<CourbeCAGroupByDatePoint>();
             using var conn = _db.GetConnection();
             conn.Open();
 
-            var sql = @"
+            // Construction dynamique du WHERE
+            var whereClauses = new List<string>
+                {
+                    "DatePoint BETWEEN @StartDate AND @EndDate"
+                };
+
+            if (!allData)
+            {
+                if (idUser.HasValue)
+                    whereClauses.Add("UserId = @UserId");
+                else
+                    whereClauses.Add("UserId IS NULL");
+            }
+
+            var whereSql = "WHERE " + string.Join(" AND ", whereClauses);
+
+            // SQL final
+            var sql = $@"
                 SELECT 
                     DatePoint,
                     GROUP_CONCAT(Id) AS Ids,
                     SUM(Amount) AS TotalAmount,
                     COUNT(*) AS CountItems
                 FROM CourbeCA
-                WHERE DatePoint BETWEEN @StartDate AND @EndDate";
-
-            // 🔹 Ajout du filtre UserId si défini
-            if (idUser.HasValue)
-                sql += " AND UserId = @UserId";
-
-            sql += @"
+                {whereSql}
                 GROUP BY DatePoint
                 ORDER BY DatePoint ASC";
 
@@ -63,8 +74,9 @@ namespace LMPE_API.DAL
             cmd.Parameters.AddWithValue("@StartDate", startDate.ToDateTime(new TimeOnly(0, 0)));
             cmd.Parameters.AddWithValue("@EndDate", endDate.ToDateTime(new TimeOnly(0, 0)));
 
-            if (idUser.HasValue)
+            if (!allData && idUser.HasValue)
                 cmd.Parameters.AddWithValue("@UserId", idUser.Value);
+
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -82,33 +94,33 @@ namespace LMPE_API.DAL
         }
 
 
-        public IEnumerable<CourbeCA> GetAll(long? lastId, int pageSize, long? idUser)
+        public IEnumerable<CourbeCA> GetAll(long? lastId, int pageSize, bool allData, long? idUser)
         {
             var list = new List<CourbeCA>();
             using var conn = _db.GetConnection();
             conn.Open();
 
-            string sql = @"
+            // Construction du SQL de base
+            var sql = @"
                 SELECT ca.*, u.Email, u.IsAdmin, u.Pseudo, u.UrlImage
                 FROM CourbeCA ca
                 LEFT JOIN Users u ON ca.UserId = u.Id
-                /**WHERE_CLAUSE**/
-                ORDER BY ca.Id DESC
-                LIMIT @PageSize";
+                WHERE 1=1"; // 1=1 pour faciliter l'ajout de AND
 
-            var whereClauses = new List<string>();
-
+            // 🔹 Filtre lastId pour pagination
             if (lastId.HasValue)
-                whereClauses.Add("ca.Id < @LastId");
+                sql += " AND ca.Id < @LastId";
 
-            if (idUser.HasValue)
-                whereClauses.Add("ca.UserId = @UserId");
+            // 🔹 Filtre UserId si allData=false
+            if (!allData)
+            {
+                if (idUser.HasValue)
+                    sql += " AND ca.UserId = @UserId";
+                else
+                    sql += " AND ca.UserId IS NULL";
+            }
 
-            // Construction du WHERE dynamique
-            if (whereClauses.Count > 0)
-                sql = sql.Replace("/**WHERE_CLAUSE**/", "WHERE " + string.Join(" AND ", whereClauses));
-            else
-                sql = sql.Replace("/**WHERE_CLAUSE**/", "");
+            sql += " ORDER BY ca.Id DESC LIMIT @PageSize";
 
             using var cmd = new MySqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@PageSize", pageSize);
@@ -116,7 +128,7 @@ namespace LMPE_API.DAL
             if (lastId.HasValue)
                 cmd.Parameters.AddWithValue("@LastId", lastId.Value);
 
-            if (idUser.HasValue)
+            if (!allData && idUser.HasValue)
                 cmd.Parameters.AddWithValue("@UserId", idUser.Value);
 
             using var reader = cmd.ExecuteReader();
