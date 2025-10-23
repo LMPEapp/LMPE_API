@@ -2,9 +2,11 @@
 using LMPE_API.Helpers;
 using LMPE_API.Hubs;
 using LMPE_API.Models;
+using LMPE_API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Text.RegularExpressions;
 
 namespace LMPE_API.Controllers
 {
@@ -14,13 +16,17 @@ namespace LMPE_API.Controllers
     {
         private readonly AgendaDal _dal;
         private readonly IHubContext<AgendaHub> _hub;
+        private readonly PushService _pushService;
+        private readonly UserDal _dalUser;
 
         private readonly string globalGroup = AgendaHub.Groupe;
 
-        public AgendaController(AgendaDal dal, IHubContext<AgendaHub> hub)
+        public AgendaController(AgendaDal dal, IHubContext<AgendaHub> hub, PushService pushService, UserDal dalUser)
         {
             _dal = dal;
             _hub = hub;
+            _pushService = pushService;
+            _dalUser = dalUser;
         }
 
         // GET /agenda?startDate=...
@@ -76,6 +82,28 @@ namespace LMPE_API.Controllers
                 var agenda = _dal.GetById(id)!;
 
                 _hub.Clients.Group(globalGroup).SendAsync(AgendaHub.AgendaCreated, agenda);
+
+                if (agenda.IsPublic)
+                {
+                    var users = _dalUser.GetAll();
+
+                    foreach (var userIdToNotify in users)
+                    {
+                        if (userIdToNotify.Id != tokenUserId)
+                        {
+                            try
+                            {
+                                _pushService.SendToUserForAgenda(userIdToNotify.Id, agenda);
+
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Erreur envoi push à l'utilisateur {userIdToNotify}: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+                
 
                 return Ok(agenda);
             }

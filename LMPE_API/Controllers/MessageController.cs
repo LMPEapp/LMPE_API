@@ -77,7 +77,7 @@ namespace LMPE_API.Controllers
                     {
                         try
                         {
-                            _pushService.SendToUser(userIdToNotify, groupe);
+                            _pushService.SendToUserForConversation(userIdToNotify, groupe);
 
                         }
                         catch (Exception ex)
