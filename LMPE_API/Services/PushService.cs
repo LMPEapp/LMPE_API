@@ -88,7 +88,7 @@ namespace LMPE_API.Services
                 }
             }
         }
-        public void SendToUserForAgenda(long userId, AgendaOut agenda)
+        public void SendToUserForAgenda(long userId, AgendaOut agenda, bool isCreate)
         {
             var subscriptions = _dal.GetByUserId(userId);
             var webPush = new WebPushClient();
@@ -131,7 +131,7 @@ namespace LMPE_API.Services
                 {
                     notification = new
                     {
-                        title = $"{agenda.CreatorPseudo ?? "Un utilisateur"} a ajouté un nouvel évènement : {agenda.Title}",
+                        title = $"{agenda.CreatorPseudo ?? "Un utilisateur"} a {(isCreate? "ajouté" : "modifié") } un évènement : {agenda.Title}",
                         body,
                         icon = "/assets/logo.png",
                         vibrate = new[] { 100, 100, 100 },
