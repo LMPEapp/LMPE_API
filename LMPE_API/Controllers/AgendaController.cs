@@ -93,7 +93,7 @@ namespace LMPE_API.Controllers
                         {
                             try
                             {
-                                _pushService.SendToUserForAgenda(userIdToNotify.Id, agenda);
+                                _pushService.SendToUserForAgenda(userIdToNotify.Id, agenda,true);
 
                             }
                             catch (Exception ex)
@@ -134,6 +134,28 @@ namespace LMPE_API.Controllers
                 {
                     var agenda = _dal.GetById(id);
                     _hub.Clients.Group(globalGroup).SendAsync(AgendaHub.AgendaUpdated, agenda);
+
+                    if (agenda.IsPublic)
+                    {
+                        var users = _dalUser.GetAll();
+
+                        foreach (var userIdToNotify in users)
+                        {
+                            if (userIdToNotify.Id != tokenUserId)
+                            {
+                                try
+                                {
+                                    _pushService.SendToUserForAgenda(userIdToNotify.Id, agenda, false);
+
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Erreur envoi push à l'utilisateur {userIdToNotify}: {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+
                 }
 
                 return result ? NoContent() : NotFound();
