@@ -95,6 +95,9 @@ namespace LMPE_API.Controllers
         {
             try
             {
+                input.UserId = null;
+                input.DatePoint = DateOnly.FromDateTime(DateTime.Now);
+
                 var id = _dal.Insert(input);
                 var ca = _dal.GetById(id)!;
 
