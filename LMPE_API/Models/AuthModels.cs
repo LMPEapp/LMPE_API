@@ -9,7 +9,12 @@
         public class LoginRequestOut
         {
             public string Token { get; set; } = "";
+            public string RefreshToken { get; set; } = "";
             public User? User { get; set; }
+        }
+        public class RefreshTokenIN
+        {
+            public string RefreshToken { get; set; } = "";
         }
         public class ResetPasswordRequest { 
             public string Email { get; set; } = ""; 

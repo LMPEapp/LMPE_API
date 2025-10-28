@@ -143,7 +143,7 @@ namespace LMPE_API.DAL
 
 
 
-        public bool UpdatePawword(long id, string PasswordHash)
+        public bool UpdatePassword(long id, string PasswordHash)
         {
             using var conn = _db.GetConnection();
             conn.Open();

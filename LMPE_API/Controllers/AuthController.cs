@@ -5,6 +5,8 @@ using LMPE_API.Models;
 using LMPE_API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
+using TonNamespace.DAL;
 using static LMPE_API.Models.AuthModels;
 
 namespace LMPE_API.Controllers
@@ -14,12 +16,14 @@ namespace LMPE_API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserDal _dal;
+        private readonly RefreshTokenDAL _dalRefreshToken;
         private readonly JwtService _jwtService;
 
-        public AuthController(UserDal dal, JwtService jwtService)
+        public AuthController(UserDal dal, JwtService jwtService, RefreshTokenDAL refreshTokenDAL)
         {
             _dal = dal;
             _jwtService = jwtService;
+            _dalRefreshToken = refreshTokenDAL;
         }
 
         // POST /auth/login
@@ -39,13 +43,44 @@ namespace LMPE_API.Controllers
 
 
                 var token = _jwtService.GenerateToken(user.Id, user.IsAdmin);
-                return Ok(new LoginRequestOut { Token = token, User = user });
+                string refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+                _dalRefreshToken.Insert(new RefreshTokenIN { RefreshToken = refreshToken }, user.Id);
+
+                return Ok(new LoginRequestOut { Token = token, User = user, RefreshToken = refreshToken });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, "Erreur serveur: " + ex.Message);
             }
-            
+        }
+
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        public IActionResult Refresh([FromBody] RefreshTokenIN input)
+        {
+            try
+            {
+                var userId = _dalRefreshToken.GetUserIdByRefreshToken(input.RefreshToken);
+                if (userId == null)
+                    return Unauthorized("Refresh token invalide");
+
+                var user = _dal.GetById(userId.Value);
+
+                if (user == null)
+                    return Unauthorized("Refresh token invalide");
+
+                var token = _jwtService.GenerateToken(user.Id, user.IsAdmin);
+                string newRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+                _dalRefreshToken.Insert(new RefreshTokenIN { RefreshToken = newRefreshToken }, user.Id);
+
+                return Ok(new LoginRequestOut { Token = token, User = user, RefreshToken = newRefreshToken });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Erreur serveur: " + ex.Message);
+            }
         }
 
         [HttpGet("validate")]
@@ -108,7 +143,7 @@ namespace LMPE_API.Controllers
 
                 // Hash et update
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(input.NewPassword);
-                var ok = _dal.UpdatePawword(user.Id, PasswordHash);
+                var ok = _dal.UpdatePassword(user.Id, PasswordHash);
                 return ok ? NoContent() : NotFound();
             }
             catch (Exception ex)

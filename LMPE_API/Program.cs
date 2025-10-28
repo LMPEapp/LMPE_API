@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TonNamespace.DAL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,7 @@ builder.Services.AddScoped<CourbeCADal>();
 builder.Services.AddScoped<PushDal>();
 builder.Services.AddScoped<FileStorageDal>();
 builder.Services.AddScoped<MessageReactionDal>();
+builder.Services.AddScoped<RefreshTokenDAL>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PushService>();
 builder.Services.AddControllers();
